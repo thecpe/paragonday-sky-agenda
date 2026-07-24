@@ -18,6 +18,7 @@
     --cat-work: #3987e5;
     --cat-personal: #199e70;
     --cat-team: #d95926;
+    --cat-import: #8f6fe8;
     --card-day-bg: #fcfcfb;
     --card-day-ink: #0b0b0b;
     --card-day-mut: #52514e;
@@ -26,6 +27,8 @@
     --card-night-mut: #c3c2b7;
     --zenith: #5a76a8;
     --dusk: #ee8a3f;
+    --sky-night: #131c3a;
+    --sky-day: #dce9f8;
   }
   [data-theme="light"] {
     --page: #f4f2ec;
@@ -40,6 +43,7 @@
     --cat-work: #2a78d6;
     --cat-personal: #1baf7a;
     --cat-team: #eb6834;
+    --cat-import: #7a5cd6;
     --zenith: #7b93c2;
   }
   * { box-sizing: border-box; margin: 0; }
@@ -66,6 +70,9 @@
   }
   select:hover, button:hover { border-color: var(--ink-mut); }
   button.primary { border-color: var(--gold); color: var(--gold); font-weight: 600; }
+  .tabs { display: flex; border: 1px solid var(--hair); border-radius: 9px; overflow: hidden; }
+  .tabs button { border: 0; border-radius: 0; padding: 8px 14px; }
+  .tabs button.on { background: var(--gold); color: #0d0d0d; font-weight: 700; }
   .daystats {
     max-width: 1040px; margin: 0 auto; padding: 4px 24px 12px;
     display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 14px; color: var(--ink-sec);
@@ -77,6 +84,14 @@
     max-width: 1040px; margin: 0 auto 10px; padding: 10px 16px;
     background: var(--surf); border: 1px solid var(--gold); border-radius: 10px;
     font-size: 14px; color: var(--ink-sec); display: none;
+  }
+  .allday {
+    max-width: 1040px; margin: 0 auto; padding: 0 24px 8px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .allday .chip {
+    font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 10px;
+    background: var(--surf); border: 1px solid var(--cat-import); color: var(--ink-sec);
   }
   #stage {
     max-width: 1040px; margin: 0 auto 60px; padding: 0 24px;
@@ -106,6 +121,7 @@
     box-shadow: 0 2px 10px rgba(0,0,0,.18);
   }
   .event:active { cursor: grabbing; }
+  .event.imported { cursor: pointer; }
   .event .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 2.5px; }
   .event .t { font-size: 15px; font-weight: 600; line-height: 1.25; }
   .event .m { font-size: 12.5px; margin-top: 2px; }
@@ -125,6 +141,56 @@
   .nowbadge .k { font-size: 10.5px; font-weight: 700; letter-spacing: 2px; color: var(--gold); }
   .nowbadge .v { font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 1px; white-space: nowrap; }
   .nowbadge .c { font-size: 11px; color: var(--ink-mut); margin-top: 1px; }
+  /* ---- week view ---- */
+  #weekstage { max-width: 1120px; margin: 0 auto 60px; padding: 0 24px; display: none; }
+  .weekgrid { display: flex; gap: 8px; }
+  .wk-gutter { width: 44px; flex: none; position: relative; }
+  .wk-gutter div { position: absolute; right: 6px; font-size: 11px; color: var(--ink-mut); transform: translateY(-50%); }
+  .wk-col { flex: 1; min-width: 0; }
+  .wk-head { text-align: center; padding: 4px 0 7px; font-size: 13px; color: var(--ink-sec); }
+  .wk-head .d { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .wk-head.today .d { color: var(--gold); }
+  .wk-head .len { font-size: 11px; color: var(--ink-mut); }
+  .wk-body { position: relative; border-radius: 12px; overflow: hidden; }
+  .wk-sun { position: absolute; left: 0; right: 0; height: 1.5px; background: rgba(242,177,61,.9); z-index: 3; }
+  .wk-sun span {
+    position: absolute; left: 3px; font-size: 9.5px; font-weight: 700; color: #ffd98a;
+    text-shadow: 0 1px 3px rgba(0,0,0,.7); white-space: nowrap;
+  }
+  .wk-sun.rise span { top: -13px; } .wk-sun.set span { top: 2px; }
+  .wk-zen { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(90,118,168,.85); z-index: 2; }
+  .wk-ev {
+    position: absolute; left: 4px; right: 4px; border-radius: 7px; padding: 3px 6px 3px 9px;
+    font-size: 10.5px; line-height: 1.25; overflow: hidden; cursor: pointer; z-index: 5;
+    box-shadow: 0 1px 5px rgba(0,0,0,.25); user-select: none;
+  }
+  .wk-ev .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .wk-ev .t { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-ev .m { opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-now { position: absolute; left: 0; right: 0; height: 2.5px; background: #f2b13d; z-index: 7; box-shadow: 0 0 12px rgba(255,217,138,.9); }
+  /* ---- month view ---- */
+  #monthstage { max-width: 1120px; margin: 0 auto 60px; padding: 0 24px; display: none; }
+  .mo-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .mo-dow { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--ink-mut); padding-bottom: 2px; }
+  .mo-cell {
+    background: var(--surf); border: 1px solid var(--hair); border-radius: 11px;
+    padding: 8px 9px 9px; min-height: 86px; cursor: pointer;
+  }
+  .mo-cell:hover { border-color: var(--ink-mut); }
+  .mo-cell.dim { opacity: .38; }
+  .mo-cell .num { font-size: 13.5px; font-weight: 700; }
+  .mo-cell.today .num { color: var(--gold); }
+  .mo-cell .lightbar { height: 11px; border-radius: 6px; margin: 7px 0 5px; overflow: hidden; }
+  .mo-cell .len { font-size: 10.5px; color: var(--ink-mut); white-space: nowrap; }
+  .mo-cell .dots { margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap; }
+  .mo-cell .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--cat-import); }
+  .mo-cell .dots i.s { background: var(--cat-team); }
+  /* ---- year view ---- */
+  #yearstage { max-width: 1120px; margin: 0 auto 60px; padding: 0 24px; display: none; }
+  #yearcv { width: 100%; border-radius: 14px; cursor: crosshair; display: block; }
+  .yr-legend { margin-top: 10px; font-size: 13px; color: var(--ink-sec); line-height: 1.55; }
+  .yr-legend b { color: var(--gold); }
+  /* ---- popovers & panels ---- */
   #popover {
     position: absolute; z-index: 20; width: 300px; background: var(--surf);
     border: 1px solid var(--hair); border-radius: 14px; padding: 14px 16px; display: none;
@@ -143,6 +209,32 @@
   #popover .inv .who { color: var(--ink-sec); }
   #popover .inv .lbl { font-weight: 600; color: var(--ink); }
   #popover .danger { color: #e05b4d; border-color: #e05b4d; }
+  #popover a.gbtn {
+    display: block; text-align: center; margin-top: 4px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--cat-work); color: var(--cat-work); font-size: 13px; font-weight: 600;
+    text-decoration: none;
+  }
+  #gcalPanel {
+    position: fixed; top: 74px; right: 22px; z-index: 30; width: 348px;
+    background: var(--surf); border: 1px solid var(--hair); border-radius: 16px;
+    padding: 16px 18px; box-shadow: 0 14px 50px rgba(0,0,0,.5); display: none;
+  }
+  #gcalPanel h3 { font-size: 13px; letter-spacing: 1.5px; color: var(--gold); margin-bottom: 10px; }
+  #gcalPanel p { font-size: 12.5px; color: var(--ink-sec); line-height: 1.5; margin-bottom: 9px; }
+  #gcalPanel .drop {
+    border: 1.5px dashed var(--ink-mut); border-radius: 12px; padding: 14px; text-align: center;
+    font-size: 13px; color: var(--ink-sec); margin-bottom: 10px; cursor: pointer;
+  }
+  #gcalPanel .drop.hot { border-color: var(--gold); color: var(--gold); }
+  #gcalPanel .row { display: flex; gap: 7px; margin-bottom: 9px; }
+  #gcalPanel input[type=text] {
+    flex: 1; min-width: 0; background: var(--surf2); border: 1px solid var(--hair); color: var(--ink);
+    border-radius: 8px; padding: 7px 10px; font-size: 12.5px; font-family: inherit;
+  }
+  #gcalPanel .stat { font-size: 12.5px; color: var(--ink-sec); margin: 4px 0 9px; }
+  #gcalPanel .stat b { color: var(--cat-import); }
+  #gcalPanel label { font-size: 12.5px; color: var(--ink-sec); display: flex; gap: 7px; align-items: center; margin-bottom: 9px; cursor: pointer; }
+  #gcalPanel .foot { font-size: 11.5px; color: var(--ink-mut); line-height: 1.5; border-top: 1px solid var(--hair); padding-top: 9px; }
   footer { max-width: 1040px; margin: 0 auto 48px; padding: 0 24px; font-size: 13.5px; color: var(--ink-mut); line-height: 1.6; }
   .kbd { font-size: 12px; color: var(--ink-mut); }
 </style>
@@ -151,32 +243,56 @@
 
 <header>
   <span class="brand">PARAGONDAY</span>
-  <h1>Sky Agenda <span style="font-weight:400;color:var(--ink-mut);font-size:17px">— the day view where the ruler is solar</span></h1>
+  <h1>Sky Agenda <span style="font-weight:400;color:var(--ink-mut);font-size:17px">— the calendar where the ruler is solar</span></h1>
 </header>
 
 <div class="controls">
   <select id="locSel"></select>
+  <div class="tabs" id="viewTabs">
+    <button data-view="day">Day</button>
+    <button data-view="week">Week</button>
+    <button data-view="month">Month</button>
+    <button data-view="year">Year</button>
+  </div>
   <button id="prevBtn">◀︎</button>
   <button id="todayBtn" class="primary">Today</button>
   <button id="nextBtn">▶︎</button>
   <span id="dateLabel" style="font-size:15px;font-weight:600;margin-left:4px"></span>
   <span style="flex:1"></span>
+  <button id="gcalBtn">⇄ Google Calendar</button>
   <button id="themeBtn">☾ / ☀︎</button>
 </div>
 
 <div class="daystats" id="daystats"></div>
 <div class="polar-note" id="polarNote"></div>
+<div class="allday" id="alldayRow"></div>
 
 <div id="stage">
   <div id="gutter"></div>
   <div id="skywrap"><div id="sky"></div></div>
 </div>
+<div id="weekstage"></div>
+<div id="monthstage"></div>
+<div id="yearstage"><canvas id="yearcv"></canvas><div class="yr-legend" id="yrLegend"></div></div>
 <div id="popover"></div>
 
+<div id="gcalPanel">
+  <h3>GOOGLE CALENDAR ⇄ SKY AGENDA</h3>
+  <div class="drop" id="dropZone">Drop a <b>.ics</b> file here (or click to choose)</div>
+  <input type="file" id="icsFile" accept=".ics,text/calendar" style="display:none">
+  <div class="row"><input type="text" id="icsUrl" placeholder="…or paste an ICS URL"><button id="icsFetch">Load</button></div>
+  <p>Get yours: Google Calendar → <b>Settings</b> → your calendar → <b>Import &amp; export → Export</b> (or the “Secret address in iCal format”). Google usually blocks in-browser fetch of secret addresses — download the file and drop it instead.</p>
+  <div class="stat" id="importStat"></div>
+  <div class="row"><button id="clearImports" class="danger" style="border-color:#e05b4d;color:#e05b4d">Clear imported</button><button id="closePanel" style="flex:1">Close</button></div>
+  <label><input type="checkbox" id="samplesChk" checked> show sample Horizon-Time events</label>
+  <div class="foot">Recurring events (RRULE) are expanded locally; nothing leaves your browser. Every event card also offers <b>“＋ Google Calendar”</b>, so invites round-trip. Production path: full 2-way OAuth sync.</div>
+</div>
+
 <footer>
-  Double-click the sky to add an event · drag a card to move it · click a card to edit, change its anchor, or see how invitees read it.<br>
-  Events anchored in <b>tilset</b> ride the sunset: flip through dates and watch “Dinner” track the light while clock-anchored events stay put.<br>
-  Sunrise/sunset via the NOAA solar position algorithm (USNO −0.8333° convention), computed live in your browser. Horizon Time leads; legacy clock rides along as a subtitle.
+  Double-click the sky to add an event · drag a card to move it · click any card to edit or see how invitees read it.<br>
+  Events anchored in <b>tilset</b> ride the sunset: flip dates and watch “Dinner” track the light while clock-anchored events stay put.<br>
+  Sunrise/sunset via the NOAA solar position algorithm (USNO −0.8333° convention), computed live in your browser.
+  Weeks, months and years keep their civil names — only their <i>portrait</i> changes: the week shows the light shifting, the month shows the drift, the year is one macro sun-cycle from nadir to zenith.
 </footer>
 
 <script>
@@ -208,7 +324,6 @@ function solarCalc(jd) { // returns {declination deg, eqTime minutes}
 function sunEvents(dateISO, lat, lon, tz) {
   const noonGuess = zonedMs(dateISO, 12, 0, tz);
   let { decl, eqTime } = solarCalc(julianDay(noonGuess));
-  // anchor to the UTC day containing local noon
   const utcDayStart = Math.floor(noonGuess / 86400000) * 86400000;
   const solarNoon = utcDayStart + (720 - 4 * lon - eqTime) * 60000;
   ({ decl, eqTime } = solarCalc(julianDay(solarNoon)));
@@ -233,12 +348,11 @@ function partsIn(ms, tz) {
   for (const { type, value } of tzFmt(tz).formatToParts(ms)) p[type] = value;
   return p;
 }
-function localHour(ms, tz) { // decimal hour of day in tz
+function localHour(ms, tz) {
   const p = partsIn(ms, tz);
   return (p.hour % 24 | 0) % 24 + p.minute / 60 + p.second / 3600;
 }
 function localISO(ms, tz) { const p = partsIn(ms, tz); return `${p.year}-${p.month}-${p.day}`; }
-// UTC ms for wall time h:m on dateISO in tz (two-pass offset estimation)
 function zonedMs(dateISO, h, m, tz) {
   const [Y, Mo, D] = dateISO.split('-').map(Number);
   let guess = Date.UTC(Y, Mo - 1, D, h, m);
@@ -254,6 +368,14 @@ function shiftISO(dateISO, days) {
   const d = new Date(Date.UTC(Y, M - 1, D + days));
   return d.toISOString().slice(0, 10);
 }
+function shiftMonthISO(dateISO, months) {
+  const [Y, M, D] = dateISO.split('-').map(Number);
+  const d = new Date(Date.UTC(Y, M - 1 + months, 1));
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(D, last));
+  return d.toISOString().slice(0, 10);
+}
+function weekdayOf(dateISO) { return new Date(dateISO + 'T12:00:00Z').getUTCDay(); } // 0=Sun
 /* ================= formatting ================= */
 function hhmm(hours) {
   const m = Math.round(Math.abs(hours) * 60);
@@ -263,7 +385,6 @@ function clock12(h) {
   const m = Math.round(((h % 24) + 24) % 24 * 60), H = Math.floor(m / 60) % 24, M = m % 60;
   return `${H % 12 || 12}:${String(M).padStart(2, '0')}${H < 12 ? 'a' : 'p'}`;
 }
-// Horizon Time pair for local decimal hour t given local rise/set hours
 function htLabel(t, rise, set, polar) {
   if (polar === 'day')   return [`−${hhmm(24 - t)} TS`, `+${hhmm(t)} PR`, 'sundip-referenced'];
   if (polar === 'night') return [`−${hhmm(24 - t)} TR`, `+${hhmm(t)} PS`, 'sundip-referenced'];
@@ -276,6 +397,7 @@ function longLabel(t, rise, set, polar) {
   const words = { TS: 'tilset', PR: 'pastrise', TR: 'tilrise', PS: 'pastset' };
   return a.replace(/(TS|PR|TR|PS)/, m => words[m]);
 }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 /* ================= locations & state ================= */
 const LOCS = [
   { name: 'San Francisco', lat: 37.7749, lon: -122.4194, tz: 'America/Los_Angeles' },
@@ -288,11 +410,10 @@ const LOCS = [
   { name: 'Quito (equator)', lat: -0.1807, lon: -78.4678, tz: 'America/Guayaquil' },
 ];
 const INVITEES = [
-  { who: 'You', locIdx: null },           // current location
+  { who: 'You', locIdx: null },
   { who: 'norm · Brooklyn', locIdx: 1 },
   { who: 'Benji · Keeseville', locIdx: 2 },
 ];
-// anchor: 'clock' (start=local hour) | 'rise' (start=hours after sunrise) | 'set' (start=hours rel. sunset)
 let events = [
   { id: 1, title: 'Standup', cat: 'work', anchor: 'rise', start: 2.0, dur: 0.5 },
   { id: 2, title: 'Deep work — spec draft', cat: 'personal', anchor: 'clock', start: 9 + 35 / 60, dur: 2 },
@@ -301,12 +422,168 @@ let events = [
   { id: 5, title: 'Stargazing', cat: 'work', anchor: 'set', start: 1.05, dur: 0.75 },
 ];
 let nextId = 6;
-const state = { loc: 0, dateISO: null, theme: 'dark' };
-/* ================= view ================= */
+const state = { loc: 0, dateISO: null, theme: 'dark', view: 'day', samples: true };
+/* ================= imported (Google Calendar / ICS) ================= */
+let imports = [];
+try { imports = JSON.parse(localStorage.getItem('skyagenda.imports') || '[]'); } catch (e) {}
+try { state.samples = localStorage.getItem('skyagenda.samples') !== '0'; } catch (e) {}
+function saveImports() {
+  try {
+    localStorage.setItem('skyagenda.imports', JSON.stringify(imports));
+    localStorage.setItem('skyagenda.samples', state.samples ? '1' : '0');
+  } catch (e) {}
+}
+function unescICS(s) { return s.replace(/\\n/gi, ' · ').replace(/\\([,;\\])/g, '$1'); }
+// parse one ICS date/time value + params into {ms?, dateISO?, wall:{dateISO,h,m,tz}?, isDate}
+function icsTime(val, p, fallbackTz) {
+  if (p.VALUE === 'DATE' || /^\d{8}$/.test(val)) {
+    return { isDate: true, dateISO: `${val.slice(0, 4)}-${val.slice(4, 6)}-${val.slice(6, 8)}` };
+  }
+  const m = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z?)$/);
+  if (!m) return null;
+  const dateISO = `${m[1]}-${m[2]}-${m[3]}`, h = +m[4], mi = +m[5];
+  if (m[7] === 'Z') return { isDate: false, ms: Date.UTC(+m[1], +m[2] - 1, +m[3], h, mi, +m[6] || 0), tz: 'UTC' };
+  const tz = p.TZID || fallbackTz;
+  try { return { isDate: false, ms: zonedMs(dateISO, h, mi, tz), wall: { dateISO, h, m: mi, tz } }; }
+  catch (e) { return { isDate: false, ms: Date.UTC(+m[1], +m[2] - 1, +m[3], h, mi) }; }
+}
+function parseRRule(val) {
+  const r = {};
+  for (const part of val.split(';')) {
+    const [k, v] = part.split('=');
+    if (k === 'FREQ') r.freq = v;
+    else if (k === 'INTERVAL') r.interval = +v || 1;
+    else if (k === 'COUNT') r.count = +v;
+    else if (k === 'UNTIL') { const t = icsTime(v, {}, 'UTC'); r.until = t ? (t.ms != null ? t.ms : Date.UTC(...t.dateISO.split('-').map((x, i) => i === 1 ? x - 1 : +x)) + 86399000) : null; }
+    else if (k === 'BYDAY') r.byday = v.split(',').map(d => ({ SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 })[d.slice(-2)]).filter(x => x != null);
+  }
+  r.interval = r.interval || 1;
+  return r;
+}
+function parseICS(text, fallbackTz) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '').split('\n');
+  const evs = []; let cur = null;
+  for (const ln of lines) {
+    if (ln === 'BEGIN:VEVENT') { cur = { ex: [] }; continue; }
+    if (ln === 'END:VEVENT') { if (cur && cur.start) evs.push(cur); cur = null; continue; }
+    if (!cur) continue;
+    const ci = ln.indexOf(':'); if (ci < 0) continue;
+    const key = ln.slice(0, ci), val = ln.slice(ci + 1);
+    const [name, ...prs] = key.split(';');
+    const p = {}; for (const pr of prs) { const eq = pr.indexOf('='); if (eq > 0) p[pr.slice(0, eq)] = pr.slice(eq + 1); }
+    if (name === 'SUMMARY') cur.title = unescICS(val);
+    else if (name === 'DTSTART') cur.start = icsTime(val, p, fallbackTz);
+    else if (name === 'DTEND') cur.end = icsTime(val, p, fallbackTz);
+    else if (name === 'RRULE') cur.rrule = parseRRule(val);
+    else if (name === 'EXDATE') for (const v of val.split(',')) { const t = icsTime(v, p, fallbackTz); if (t && t.ms != null) cur.ex.push(t.ms); }
+    else if (name === 'UID') cur.uid = val;
+    else if (name === 'RECURRENCE-ID') { const t = icsTime(val, p, fallbackTz); cur.recId = t && t.ms; }
+    else if (name === 'STATUS') cur.status = val;
+  }
+  return evs;
+}
+// expand parsed VEVENTs into flat instances within [w0, w1]
+function expandICS(evs, w0, w1) {
+  const out = [];
+  const overridden = {}; // uid -> Set of original-start ms replaced by RECURRENCE-ID events
+  for (const ev of evs) if (ev.recId != null && ev.uid) (overridden[ev.uid] = overridden[ev.uid] || new Set()).add(ev.recId);
+  const push = (ev, sMs, eMs) => {
+    if (ev.status === 'CANCELLED') return;
+    if (sMs > w1 || eMs < w0) return;
+    out.push({ title: ev.title || '(untitled)', startMs: sMs, endMs: eMs, src: 'gcal' });
+  };
+  for (const ev of evs) {
+    if (out.length > 2500) break;
+    if (ev.start.isDate) { // all-day
+      const d0 = ev.start.dateISO;
+      const nDays = ev.end && ev.end.isDate ? Math.max(1, Math.round((Date.parse(ev.end.dateISO) - Date.parse(d0)) / 86400000)) : 1;
+      const addAllDay = iso => {
+        const sMs = Date.parse(iso + 'T00:00:00Z');
+        if (sMs > w1 || sMs < w0) return;
+        for (let k = 0; k < nDays; k++) out.push({ title: ev.title || '(untitled)', allDay: true, dateISO: shiftISO(iso, k), src: 'gcal' });
+      };
+      if (!ev.rrule) addAllDay(d0);
+      else if (ev.rrule.freq === 'YEARLY') { for (let y = 0; y < 5; y++) addAllDay(`${+d0.slice(0, 4) + y * ev.rrule.interval}${d0.slice(4)}`); }
+      else if (ev.rrule.freq === 'WEEKLY' || ev.rrule.freq === 'DAILY') {
+        const step = ev.rrule.freq === 'DAILY' ? ev.rrule.interval : 7 * ev.rrule.interval;
+        let iso = d0, n = 0;
+        while (n < (ev.rrule.count || 999) && Date.parse(iso) <= w1) {
+          if (!ev.rrule.until || Date.parse(iso) <= ev.rrule.until) addAllDay(iso);
+          iso = shiftISO(iso, step); n++;
+        }
+      } else addAllDay(d0);
+      continue;
+    }
+    const dur = ev.end && ev.end.ms != null ? Math.max(ev.end.ms - ev.start.ms, 5 * 60000) : 3600000;
+    const skip = new Set([...(ev.ex || []), ...(ev.uid && !ev.recId && overridden[ev.uid] ? overridden[ev.uid] : [])]);
+    if (!ev.rrule || ev.recId != null) { if (!skip.has(ev.start.ms)) push(ev, ev.start.ms, ev.start.ms + dur); continue; }
+    const r = ev.rrule, wall = ev.start.wall;
+    const occAt = iso => wall ? zonedMs(iso, wall.h, wall.m, wall.tz) : null;
+    let n = 0, made = 0;
+    const emit = ms => { if (ms == null) return; if (r.until && ms > r.until) return; if (ms > w1) return; if (!skip.has(ms)) push(ev, ms, ms + dur); made++; };
+    if (r.freq === 'DAILY') {
+      let iso = wall ? wall.dateISO : null, ms = ev.start.ms;
+      while (n < (r.count || 1000) && n < 1000) {
+        emit(wall ? occAt(iso) : ms);
+        if (wall) iso = shiftISO(iso, r.interval); else ms += r.interval * 86400000;
+        if ((wall ? occAt(iso) : ms) > w1) break;
+        n++;
+      }
+    } else if (r.freq === 'WEEKLY') {
+      const baseIso = wall ? wall.dateISO : localISO(ev.start.ms, 'UTC');
+      const days = r.byday && r.byday.length ? r.byday : [weekdayOf(baseIso)];
+      const wkStart = shiftISO(baseIso, -weekdayOf(baseIso)); // Sunday of first week
+      for (let w = 0; w < 160 && n < (r.count || 1000); w++) {
+        for (const dow of days.slice().sort()) {
+          const iso = shiftISO(wkStart, w * 7 * r.interval + dow);
+          const ms = wall ? occAt(iso) : Date.parse(iso + 'T' + new Date(ev.start.ms).toISOString().slice(11, 19) + 'Z');
+          if (ms < ev.start.ms) continue;
+          if (n >= (r.count || 1000)) break;
+          emit(ms); n++;
+        }
+        const probe = wall ? occAt(shiftISO(wkStart, w * 7 * r.interval)) : 0;
+        if (probe && probe > w1) break;
+      }
+    } else if (r.freq === 'MONTHLY' || r.freq === 'YEARLY') {
+      const baseIso = wall ? wall.dateISO : localISO(ev.start.ms, 'UTC');
+      const stepM = r.freq === 'MONTHLY' ? r.interval : 12 * r.interval;
+      let iso = baseIso;
+      while (n < (r.count || 120) && n < 120) {
+        const ms = occAt(iso) || ev.start.ms + n * 30 * 86400000;
+        if (ms > w1) break;
+        emit(ms); n++;
+        iso = shiftMonthISO(baseIso, stepM * n);
+      }
+    } else emit(ev.start.ms);
+  }
+  return out;
+}
+function importICSText(text) {
+  const now = Date.now();
+  const parsed = parseICS(text, LOCS[state.loc].tz);
+  const inst = expandICS(parsed, now - 45 * 86400000, now + 420 * 86400000);
+  imports = imports.concat(inst).slice(0, 4000);
+  saveImports(); refreshPanel(); render();
+  return inst.length;
+}
+function importsOn(dateISO, tz) {
+  return imports.filter(ev => ev.allDay ? ev.dateISO === dateISO : localISO(ev.startMs, tz) === dateISO);
+}
+/* ================= Google Calendar export link ================= */
+function gcalUrl(title, sMs, eMs, details) {
+  const f = ms => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + `&text=${encodeURIComponent(title)}&dates=${f(sMs)}/${f(eMs)}&details=${encodeURIComponent(details)}`;
+}
+/* ================= view plumbing ================= */
 const $ = id => document.getElementById(id);
 const stagePad = { top: 30, bottom: 30 };
-let view = null; // {t0,t1,riseH,setH,noonH,polar,pxPerHour,H}
-
+let view = null; // day view geometry
+const sunCache = {};
+function sunFor(dateISO, loc) {
+  const k = `${loc.name}|${dateISO}`;
+  return sunCache[k] || (sunCache[k] = sunEvents(dateISO, loc.lat, loc.lon, loc.tz));
+}
 function resolveStart(ev, riseH, setH, polar) {
   if (ev.anchor === 'clock' || polar) return ev.anchor === 'clock' ? ev.start : (ev.anchor === 'rise' ? ev.start + 6 : 18 + ev.start);
   return ev.anchor === 'rise' ? riseH + ev.start : setH + ev.start;
@@ -324,18 +601,37 @@ function skyGradient(t0, t1, riseH, setH, polar) {
     [riseH + 1.6, '#cfe0f5'], [(riseH + setH) / 2, '#dce9f8'], [setH - 1.6, '#f3cfa0'],
     [setH, '#ee8a3f'], [setH + 0.55, '#2c2c55'], [t1, '#0e1832'],
   ];
-  return `linear-gradient(${stops.map(([t, c]) => `${c} ${pct(t)}`).join(', ')})`;
+  return `linear-gradient(${stops.filter(([t]) => t >= t0 - 0.01 && t <= t1 + 0.01).map(([t, c]) => `${c} ${pct(t)}`).join(', ')})`;
+}
+function catColor(cat) { return getComputedStyle(document.body).getPropertyValue(`--cat-${cat}`).trim(); }
+function setStages() {
+  $('stage').style.display = state.view === 'day' ? 'flex' : 'none';
+  $('weekstage').style.display = state.view === 'week' ? 'block' : 'none';
+  $('monthstage').style.display = state.view === 'month' ? 'block' : 'none';
+  $('yearstage').style.display = state.view === 'year' ? 'block' : 'none';
+  document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('on', b.dataset.view === state.view));
 }
 function render() {
+  setStages();
+  if (state.view === 'day') renderDay();
+  else if (state.view === 'week') renderWeek();
+  else if (state.view === 'month') renderMonth();
+  else renderYear();
+}
+/* ================= DAY view ================= */
+function renderDay() {
   const loc = LOCS[state.loc];
-  const se = sunEvents(state.dateISO, loc.lat, loc.lon, loc.tz);
-  const seY = sunEvents(shiftISO(state.dateISO, -1), loc.lat, loc.lon, loc.tz);
+  const se = sunFor(state.dateISO, loc);
+  const seY = sunFor(shiftISO(state.dateISO, -1), loc);
   const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
   const setH = se.set != null ? localHour(se.set, loc.tz) : null;
   const noonH = localHour(se.noon, loc.tz);
   const polar = se.polar;
-  const t0 = polar ? 0 : Math.max(0, riseH - 1.5);
-  const t1 = polar ? 24 : Math.min(24, setH + 2.5);
+  const dayImports = importsOn(state.dateISO, loc.tz).filter(e => !e.allDay)
+    .map(ev => ({ imp: ev, s: localHour(ev.startMs, loc.tz), d: Math.max((ev.endMs - ev.startMs) / 3600000, 0.35) }));
+  let t0 = polar ? 0 : Math.max(0, riseH - 1.5);
+  let t1 = polar ? 24 : Math.min(24, setH + 2.5);
+  for (const { s, d } of dayImports) { t0 = Math.min(t0, Math.max(0, s - 0.6)); t1 = Math.max(t1, Math.min(24, s + d + 0.6)); }
   const pxPerHour = 62;
   const H = (t1 - t0) * pxPerHour + stagePad.top + stagePad.bottom;
   view = { t0, t1, riseH, setH, noonH, polar, pxPerHour, H, tz: loc.tz };
@@ -344,7 +640,6 @@ function render() {
   $('dateLabel').textContent = new Date(zonedMs(state.dateISO, 12, 0, loc.tz))
     .toLocaleDateString('en-US', { timeZone: loc.tz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
-  // day stats
   const stats = $('daystats');
   if (!polar) {
     const dayLen = setH - riseH;
@@ -367,22 +662,26 @@ function render() {
       ? '☀︎ <b>Midnight sun.</b> No sunset today — the sun’s nadir counts as a collapsed sunset+sunrise: a <b>sundip</b>. Labels run from sundip to sundip.'
       : '☾ <b>Polar night.</b> No sunrise today — the sun’s nadir is the <b>sundip</b>, a collapsed sunset+sunrise. Labels run from sundip to sundip.';
   } else note.style.display = 'none';
+  renderAllDayRow(loc);
 
-  // stage
   const gutter = $('gutter'), skywrap = $('skywrap'), sky = $('sky');
   gutter.style.height = skywrap.style.height = `${H}px`;
   gutter.innerHTML = ''; skywrap.querySelectorAll(':scope > :not(#sky)').forEach(n => n.remove());
   sky.style.top = `${stagePad.top}px`; sky.style.bottom = `${stagePad.bottom}px`;
   sky.style.background = skyGradient(t0, t1, riseH, setH, polar);
 
-  // ruler ticks: every 2h from sunrise, plus night-side hours
   const ticks = [];
   if (!polar) {
     for (let k = 0; riseH + k <= setH; k += 2) ticks.push(riseH + k);
     ticks.push(setH + 1, setH + 2, riseH - 1);
+    for (let k = Math.ceil(t0); k < riseH - 1; k += 2) ticks.push(k);
+    for (let k = Math.ceil(setH + 3); k < t1; k += 2) ticks.push(k);
   } else for (let k = 1; k < 24; k += 3) ticks.push(k);
+  ticks.sort((a, b) => a - b);
+  let lastTick = -9;
   for (const t of ticks) {
-    if (t < t0 + 0.2 || t > t1 - 0.2) continue;
+    if (t < t0 + 0.2 || t > t1 - 0.2 || t - lastTick < 0.45) continue;
+    lastTick = t;
     const [main, sub] = htLabel(t, riseH, setH, polar);
     const el = document.createElement('div');
     el.className = 'tick'; el.style.top = `${Y(t)}px`;
@@ -393,13 +692,11 @@ function render() {
     skywrap.appendChild(tm);
   }
 
-  // zenith
   const z = document.createElement('div');
   z.className = 'zenith'; z.style.top = `${Y(noonH)}px`;
   z.innerHTML = `<span>zenith · ${clock12(noonH)}</span>`;
   skywrap.appendChild(z);
 
-  // horizons
   if (!polar) {
     for (const [t, lab, col, side] of [
       [riseH, `SUNRISE · +0:00 PR · ${clock12(riseH)}`, '#f2b13d', 'left'],
@@ -418,39 +715,46 @@ function render() {
     skywrap.appendChild(hEl);
   }
 
-  // events (sorted; overlapping cards cascade right so none fully hides another)
-  const sorted = [...events].map(ev => ({ ev, s: resolveStart(ev, riseH, setH, polar) }))
-    .filter(x => x.s != null && x.s + x.ev.dur >= t0 && x.s <= t1)
-    .sort((a, b) => a.s - b.s);
+  // cards: samples (if enabled) + imported, cascaded on overlap
+  const cards = [];
+  if (state.samples) for (const ev of events) {
+    const s = resolveStart(ev, riseH, setH, polar);
+    if (s != null && s + ev.dur >= t0 && s <= t1) cards.push({ kind: 's', ev, s, d: ev.dur });
+  }
+  for (const { imp, s, d } of dayImports) if (s + d >= t0 && s <= t1) cards.push({ kind: 'i', imp, s, d });
+  cards.sort((a, b) => a.s - b.s);
   const active = [];
-  for (const { ev, s } of sorted) {
-    while (active.length && active[active.length - 1] <= s + 0.02) active.pop();
+  for (const c of cards) {
+    while (active.length && active[active.length - 1] <= c.s + 0.02) active.pop();
     const depth = active.length;
-    active.push(s + ev.dur);
+    active.push(c.s + c.d);
     const el = document.createElement('div');
-    const night = polar ? polar === 'night' : (s < riseH || s >= setH);
-    el.className = 'event' + (ev.hot ? ' hot' : '');
+    const night = polar ? polar === 'night' : (c.s < riseH || c.s >= setH);
+    const isImp = c.kind === 'i';
+    el.className = 'event' + (!isImp && c.ev.hot ? ' hot' : '') + (isImp ? ' imported' : '');
     el.style.left = `${84 + depth * 26}px`;
     el.style.zIndex = 6 + depth;
-    el.style.top = `${Y(s)}px`;
-    const showBadge = ev.anchor !== 'clock' && !polar;
-    el.style.height = `${Math.max(ev.dur * pxPerHour, showBadge ? 78 : 52)}px`;
+    el.style.top = `${Y(c.s)}px`;
+    const title = isImp ? c.imp.title : c.ev.title;
+    const anchorTxt = isImp ? null : { clock: null, rise: 'anchored in pastrise', set: 'anchored in tilset' }[c.ev.anchor];
+    const showBadge = !isImp && c.ev.anchor !== 'clock' && !polar;
+    el.style.height = `${Math.max(c.d * pxPerHour, showBadge ? 78 : 52)}px`;
     el.style.background = night ? 'var(--card-night-bg)' : 'var(--card-day-bg)';
     el.style.color = night ? 'var(--card-night-ink)' : 'var(--card-day-ink)';
     const mut = night ? 'var(--card-night-mut)' : 'var(--card-day-mut)';
-    const cat = getComputedStyle(document.body).getPropertyValue(`--cat-${ev.cat}`);
-    const [main, sub] = htLabel(s, riseH, setH, polar);
-    const anchorTxt = { clock: null, rise: 'anchored in pastrise', set: 'anchored in tilset' }[ev.anchor];
+    const cat = catColor(isImp ? 'import' : c.ev.cat);
+    const [main, sub] = htLabel(c.s, riseH, setH, polar);
     el.innerHTML =
       `<div class="bar" style="background:${cat}"></div>` +
-      `<div class="t">${ev.title}</div>` +
-      `<div class="m" style="color:${mut}">${main} · ${sub} · ${clock12(s)}–${clock12(s + ev.dur)}</div>` +
-      (showBadge && anchorTxt ? `<div class="anchor-badge">☉ ${anchorTxt}${ev.hot ? ' — each invitee sees their own sky' : ''}</div>` : '');
-    el.dataset.id = ev.id;
+      `<div class="t">${esc(title)}</div>` +
+      `<div class="m" style="color:${mut}">${main} · ${sub} · ${clock12(c.s)}–${clock12(c.s + c.d)}</div>` +
+      (showBadge && anchorTxt ? `<div class="anchor-badge">☉ ${anchorTxt}${c.ev.hot ? ' — each invitee sees their own sky' : ''}</div>` : '') +
+      (isImp ? `<div class="anchor-badge" style="color:${cat};background:rgba(143,111,232,.14)">⇄ Google Calendar</div>` : '');
+    if (isImp) el.dataset.imp = imports.indexOf(c.imp);
+    else el.dataset.id = c.ev.id;
     skywrap.appendChild(el);
   }
 
-  // now line
   const nowMs = Date.now();
   if (localISO(nowMs, loc.tz) === state.dateISO) {
     const tn = localHour(nowMs, loc.tz);
@@ -467,6 +771,246 @@ function render() {
     }
   }
 }
+function renderAllDayRow(loc) {
+  const row = $('alldayRow');
+  if (state.view !== 'day') { row.innerHTML = ''; return; }
+  const chips = importsOn(state.dateISO, loc.tz).filter(e => e.allDay);
+  row.innerHTML = chips.map(c => `<span class="chip">◈ ${esc(c.title)} · all day</span>`).join('');
+}
+/* ================= WEEK view ================= */
+function weekStartISO(dateISO) { return shiftISO(dateISO, -weekdayOf(dateISO)); }
+function renderWeek() {
+  const loc = LOCS[state.loc];
+  $('polarNote').style.display = 'none'; $('alldayRow').innerHTML = '';
+  const w0 = weekStartISO(state.dateISO);
+  const days = Array.from({ length: 7 }, (_, i) => shiftISO(w0, i));
+  const ppH = 27, bodyH = 24 * ppH;
+  const fmt = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+  $('dateLabel').textContent = `${fmt(days[0])} – ${fmt(days[6])}, ${days[6].slice(0, 4)}`;
+
+  const first = sunFor(days[0], loc), last = sunFor(days[6], loc);
+  let weekDelta = '';
+  if (first.rise && last.rise) {
+    const l0 = localHour(first.set, loc.tz) - localHour(first.rise, loc.tz);
+    const l6 = localHour(last.set, loc.tz) - localHour(last.rise, loc.tz);
+    const dm = Math.round((l6 - l0) * 60);
+    weekDelta = `<span class="${dm < 0 ? 'delta-neg' : 'delta-pos'}">${dm < 0 ? '▼ you lose' : '▲ you gain'} ${Math.abs(dm)} min of light this week</span>`;
+  }
+  $('daystats').innerHTML = `<span>week of <b>${fmt(days[0])}</b></span>${weekDelta}<span style="color:var(--ink-mut)">tilset-anchored events ride the sunset down the page — clock events hold still</span>`;
+
+  const todayISO = localISO(Date.now(), loc.tz);
+  let html = '<div class="weekgrid"><div class="wk-gutter" style="margin-top:52px;height:' + bodyH + 'px">';
+  for (let h = 0; h <= 24; h += 6) html += `<div style="top:${h * ppH}px">${h === 0 || h === 24 ? '12a' : clock12(h)}</div>`;
+  html += '</div>';
+  for (const iso of days) {
+    const se = sunFor(iso, loc);
+    const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
+    const setH = se.set != null ? localHour(se.set, loc.tz) : null;
+    const noonH = localHour(se.noon, loc.tz);
+    const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][weekdayOf(iso)];
+    const len = se.polar ? (se.polar === 'day' ? '24:00' : '0:00') : hhmm(setH - riseH);
+    html += `<div class="wk-col"><div class="wk-head${iso === todayISO ? ' today' : ''}">${dow} <span class="d">${+iso.slice(8)}</span><br><span class="len">☀︎ ${len}</span></div>`;
+    html += `<div class="wk-body" data-iso="${iso}" style="height:${bodyH}px;background:${skyGradient(0, 24, riseH, setH, se.polar)}">`;
+    if (!se.polar) {
+      html += `<div class="wk-sun rise" style="top:${riseH * ppH}px"><span>↑ ${clock12(riseH)}</span></div>`;
+      html += `<div class="wk-sun set" style="top:${setH * ppH}px"><span>↓ ${clock12(setH)}</span></div>`;
+    }
+    html += `<div class="wk-zen" style="top:${noonH * ppH}px"></div>`;
+    // events
+    const evs = [];
+    if (state.samples) for (const ev of events) {
+      const s = resolveStart(ev, riseH, setH, se.polar);
+      if (s != null) evs.push({ kind: 's', id: ev.id, title: ev.title, cat: ev.cat, s, d: ev.dur, ht: htLabel(s, riseH, setH, se.polar)[0] });
+    }
+    for (const imp of importsOn(iso, loc.tz)) {
+      if (imp.allDay) { html += `<div class="wk-ev" style="top:2px;background:var(--surf);color:var(--ink-sec)"><div class="bar" style="background:var(--cat-import)"></div><div class="t">◈ ${esc(imp.title)}</div></div>`; continue; }
+      const s = localHour(imp.startMs, loc.tz);
+      evs.push({ kind: 'i', idx: imports.indexOf(imp), title: imp.title, cat: 'import', s, d: Math.max((imp.endMs - imp.startMs) / 3600000, 0.4), ht: htLabel(s, riseH, setH, se.polar)[0] });
+    }
+    evs.sort((a, b) => a.s - b.s);
+    const act = [];
+    for (const e of evs) {
+      while (act.length && act[act.length - 1] <= e.s + 0.02) act.pop();
+      const depth = act.length; act.push(e.s + e.d);
+      const night = se.polar ? se.polar === 'night' : (e.s < riseH || e.s >= setH);
+      const top = Math.max(0, Math.min(e.s * ppH, bodyH - 20));
+      const hpx = Math.max(e.d * ppH, 24);
+      html += `<div class="wk-ev${e.kind === 'i' ? ' imported' : ''}" ${e.kind === 'i' ? `data-imp="${e.idx}"` : `data-id="${e.id}"`} style="top:${top}px;height:${hpx}px;left:${4 + depth * 8}px;z-index:${5 + depth};background:${night ? 'var(--card-night-bg)' : 'var(--card-day-bg)'};color:${night ? 'var(--card-night-ink)' : 'var(--card-day-ink)'}">` +
+        `<div class="bar" style="background:${catColor(e.cat)}"></div><div class="t">${esc(e.title)}</div>` + (hpx > 32 ? `<div class="m">${e.ht} · ${clock12(e.s)}</div>` : '') + '</div>';
+    }
+    if (iso === todayISO) {
+      const tn = localHour(Date.now(), loc.tz);
+      html += `<div class="wk-now" style="top:${tn * ppH}px"></div>`;
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+  $('weekstage').innerHTML = html;
+}
+/* ================= MONTH view ================= */
+function renderMonth() {
+  const loc = LOCS[state.loc];
+  $('polarNote').style.display = 'none'; $('alldayRow').innerHTML = '';
+  const [Y, M] = state.dateISO.split('-').map(Number);
+  const firstISO = `${Y}-${String(M).padStart(2, '0')}-01`;
+  const daysInMonth = new Date(Date.UTC(Y, M, 0)).getUTCDate();
+  const lastISO = `${Y}-${String(M).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  $('dateLabel').textContent = new Date(firstISO + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', year: 'numeric' });
+  const seA = sunFor(firstISO, loc), seB = sunFor(lastISO, loc);
+  let drift = '';
+  if (seA.rise && seB.rise) {
+    const lA = localHour(seA.set, loc.tz) - localHour(seA.rise, loc.tz);
+    const lB = localHour(seB.set, loc.tz) - localHour(seB.rise, loc.tz);
+    const dm = Math.round((lB - lA) * 60);
+    drift = `<span>daylight <b>${hhmm(lA)}</b> → <b>${hhmm(lB)}</b></span><span class="${dm < 0 ? 'delta-neg' : 'delta-pos'}">${dm < 0 ? '▼' : '▲'} ${Math.abs(dm)} min across the month</span>`;
+  }
+  $('daystats').innerHTML = `${drift}<span style="color:var(--ink-mut)">each bar is that day’s sky, midnight → midnight · click a day</span>`;
+
+  const todayISO = localISO(Date.now(), loc.tz);
+  let html = '<div class="mo-grid">';
+  for (const d of ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']) html += `<div class="mo-dow">${d}</div>`;
+  const start = shiftISO(firstISO, -weekdayOf(firstISO));
+  for (let i = 0; i < 42; i++) {
+    const iso = shiftISO(start, i);
+    if (i === 35 && +iso.slice(5, 7) !== M) break;
+    const inMonth = +iso.slice(5, 7) === M;
+    const se = sunFor(iso, loc);
+    const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
+    const setH = se.set != null ? localHour(se.set, loc.tz) : null;
+    const len = se.polar ? (se.polar === 'day' ? '24:00' : '0:00') : hhmm(setH - riseH);
+    const sunTxt = se.polar ? (se.polar === 'day' ? 'midnight sun' : 'polar night') : `${clock12(riseH)}–${clock12(setH)}`;
+    const dayImps = importsOn(iso, loc.tz);
+    const dots = dayImps.slice(0, 5).map(() => '<i></i>').join('');
+    html += `<div class="mo-cell${inMonth ? '' : ' dim'}${iso === todayISO ? ' today' : ''}" data-iso="${iso}">` +
+      `<span class="num">${+iso.slice(8)}</span>` +
+      `<div class="lightbar" style="background:${skyGradient(0, 24, riseH, setH, se.polar).replace('linear-gradient(', 'linear-gradient(to right, ')}"></div>` +
+      `<div class="len">☀︎ ${len} · ${sunTxt}</div>` +
+      (dots ? `<div class="dots">${dots}</div>` : '') + '</div>';
+  }
+  html += '</div>';
+  $('monthstage').innerHTML = html;
+}
+/* ================= YEAR view ================= */
+const yearCache = {};
+function yearData(year, loc) {
+  const k = `${loc.name}|${year}`;
+  if (yearCache[k]) return yearCache[k];
+  const days = [];
+  let iso = `${year}-01-01`;
+  while (iso.slice(0, 4) == year) {
+    const se = sunFor(iso, loc);
+    days.push({
+      iso,
+      rise: se.rise != null ? localHour(se.rise, loc.tz) : null,
+      set: se.set != null ? localHour(se.set, loc.tz) : null,
+      polar: se.polar,
+      len: se.polar ? (se.polar === 'day' ? 24 : 0) : localHour(se.set, loc.tz) - localHour(se.rise, loc.tz),
+    });
+    iso = shiftISO(iso, 1);
+  }
+  return (yearCache[k] = days);
+}
+function renderYear() {
+  const loc = LOCS[state.loc];
+  $('polarNote').style.display = 'none'; $('alldayRow').innerHTML = '';
+  const year = +state.dateISO.slice(0, 4);
+  const days = yearData(year, loc);
+  $('dateLabel').textContent = String(year);
+
+  // the year as a macro sun-cycle: nadir (shortest), zenith (longest), 12h crossings
+  let zen = 0, nad = 0;
+  days.forEach((d, i) => { if (d.len > days[zen].len) zen = i; if (d.len < days[nad].len) nad = i; });
+  const crossings = [];
+  for (let i = 1; i < days.length; i++) {
+    if ((days[i - 1].len - 12) * (days[i].len - 12) <= 0 && days[i - 1].len !== days[i].len) crossings.push(i);
+  }
+  const rising = i => i > 0 && days[i].len >= days[i - 1].len;
+  const fmtD = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+  $('daystats').innerHTML =
+    `<span>year-nadir <b>${fmtD(days[nad].iso)}</b> (${hhmm(days[nad].len)})</span>` +
+    `<span>year-zenith <b>${fmtD(days[zen].iso)}</b> (${hhmm(days[zen].len)})</span>` +
+    `<span style="color:var(--ink-mut)">one macro sun-cycle · click anywhere to open that day</span>`;
+
+  const cv = $('yearcv');
+  const W = Math.min(1072, Math.max(720, ($('yearstage').clientWidth || 1072))) ;
+  const Hc = 430, padL = 34, padT = 26, padB = 40;
+  cv.width = W * 2; cv.height = Hc * 2; cv.style.width = W + 'px'; cv.style.height = Hc + 'px';
+  const cx = cv.getContext('2d'); cx.scale(2, 2);
+  const plotW = W - padL - 8, plotH = Hc - padT - padB;
+  const X = i => padL + i / (days.length - 1) * plotW;
+  const Yh = h => padT + h / 24 * plotH;
+  const light = document.body.dataset.theme === 'light';
+  cx.fillStyle = light ? '#eceae2' : '#111119'; cx.fillRect(0, 0, W, Hc);
+  cx.fillStyle = '#131c3a'; cx.fillRect(padL, padT, plotW, plotH);
+  // daylight band
+  const colW = plotW / days.length + 0.75;
+  days.forEach((d, i) => {
+    if (d.polar === 'night') return;
+    const y0 = d.polar === 'day' ? padT : Yh(d.rise);
+    const y1 = d.polar === 'day' ? padT + plotH : Yh(d.set);
+    const g = cx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, '#f0a44c'); g.addColorStop(0.18, '#cfe0f5'); g.addColorStop(0.5, '#dce9f8'); g.addColorStop(0.85, '#f3cfa0'); g.addColorStop(1, '#ee8a3f');
+    cx.fillStyle = g;
+    cx.fillRect(X(i) - colW / 2, y0, colW, Math.max(y1 - y0, 0.5));
+  });
+  // month grid + labels
+  cx.textAlign = 'left'; cx.font = '11px Helvetica';
+  for (let m = 0; m < 12; m++) {
+    const idx = days.findIndex(d => d.iso.slice(5, 7) === String(m + 1).padStart(2, '0'));
+    cx.strokeStyle = 'rgba(255,255,255,.14)'; cx.beginPath(); cx.moveTo(X(idx), padT); cx.lineTo(X(idx), padT + plotH); cx.stroke();
+    cx.fillStyle = light ? '#4d4c47' : '#898781';
+    cx.fillText(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m], X(idx) + 3, padT + plotH + 14);
+  }
+  // hour lines
+  cx.textAlign = 'right';
+  for (const h of [6, 12, 18]) {
+    cx.strokeStyle = 'rgba(255,255,255,.12)'; cx.setLineDash([3, 4]);
+    cx.beginPath(); cx.moveTo(padL, Yh(h)); cx.lineTo(padL + plotW, Yh(h)); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = light ? '#4d4c47' : '#898781'; cx.fillText(h === 12 ? '12p' : clock12(h), padL - 4, Yh(h) + 3);
+  }
+  // markers: nadir, zenith, crossings
+  const mark = (i, label, col) => {
+    cx.strokeStyle = col; cx.setLineDash([5, 4]);
+    cx.beginPath(); cx.moveTo(X(i), padT); cx.lineTo(X(i), padT + plotH); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = col; cx.textAlign = 'center'; cx.font = 'bold 10.5px Helvetica';
+    cx.fillText(label, Math.max(padL + 62, Math.min(X(i), W - 78)), padT - 8);
+    cx.font = '11px Helvetica';
+  };
+  mark(nad, `YEAR-NADIR · ${fmtD(days[nad].iso)}`, '#7a8fd4');
+  mark(zen, `YEAR-ZENITH · ${fmtD(days[zen].iso)}`, '#f2b13d');
+  crossings.slice(0, 2).forEach(i => mark(i, `${rising(i) ? 'YEAR-RISE' : 'YEAR-SET'} · ${fmtD(days[i].iso)}`, '#ee8a3f'));
+  // imported events as gold ticks
+  cx.fillStyle = '#ffd98a';
+  for (const imp of imports) {
+    if (imp.allDay) continue;
+    const iso = localISO(imp.startMs, loc.tz);
+    if (iso.slice(0, 4) != year) continue;
+    const i = days.findIndex(d => d.iso === iso);
+    if (i < 0) continue;
+    cx.fillRect(X(i) - 1.25, Yh(localHour(imp.startMs, loc.tz)) - 1.25, 3.2, 3.2);
+  }
+  // today
+  const todayISO = localISO(Date.now(), loc.tz);
+  const ti = days.findIndex(d => d.iso === todayISO);
+  if (ti >= 0) {
+    cx.strokeStyle = '#f2b13d'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(X(ti), padT); cx.lineTo(X(ti), padT + plotH); cx.stroke(); cx.lineWidth = 1;
+    cx.fillStyle = '#f2b13d'; cx.beginPath(); cx.arc(X(ti), Yh(localHour(Date.now(), loc.tz)), 4, 0, 7); cx.fill();
+    cx.textAlign = 'center'; cx.font = 'bold 10.5px Helvetica';
+    cx.fillText('YOU ARE HERE', X(ti), padT + plotH + 28);
+  }
+  cv.onclick = e => {
+    const r = cv.getBoundingClientRect();
+    const i = Math.round((e.clientX - r.left - padL) / plotW * (days.length - 1));
+    if (i >= 0 && i < days.length) { state.dateISO = days[i].iso; state.view = 'day'; render(); }
+  };
+  $('yrLegend').innerHTML =
+    `The year is one <b>macro sun-cycle</b>: it bottoms out at the <b>year-nadir</b> (winter solstice, ${hhmm(days[nad].len)} of light), ` +
+    `crosses <b>year-rise</b>, peaks at the <b>year-zenith</b> (summer solstice, ${hhmm(days[zen].len)}), and returns through <b>year-set</b>. ` +
+    `Same four-label grammar as the day — tilset : sunset :: til-nadir : winter. ` +
+    `Year-rise/year-set are the exact 12-hour crossings (the <i>equiluxes</i> — a few days off the equinoxes, because refraction pads the day). ` +
+    `The vertical breaks in the band are DST: the clock jumps, the sun doesn’t. Gold dots are your imported Google Calendar events, plotted against the light they’ll happen in.`;
+}
 /* ================= interactions ================= */
 function hourAtY(clientY) {
   const r = $('skywrap').getBoundingClientRect();
@@ -474,9 +1018,10 @@ function hourAtY(clientY) {
 }
 let drag = null;
 document.addEventListener('pointerdown', e => {
-  const card = e.target.closest('.event');
-  if (!card || e.target.closest('.anchor-badge')) return;
+  const card = e.target.closest('#skywrap .event');
+  if (!card || e.target.closest('.anchor-badge') || card.classList.contains('imported')) return;
   const ev = events.find(x => x.id === +card.dataset.id);
+  if (!ev) return;
   drag = { ev, startY: e.clientY, startH: resolveStart(ev, view.riseH, view.setH, view.polar), moved: false };
 });
 document.addEventListener('pointermove', e => {
@@ -493,6 +1038,14 @@ document.addEventListener('pointerup', e => {
   if (drag && !drag.moved) openEditor(drag.ev, e.clientX, e.clientY);
   drag = null;
 });
+document.addEventListener('click', e => {
+  const impCard = e.target.closest('[data-imp]');
+  if (impCard) { openImported(imports[+impCard.dataset.imp], e.clientX, e.clientY); return; }
+  const wkEv = e.target.closest('.wk-ev[data-id]');
+  if (wkEv) { const ev = events.find(x => x.id === +wkEv.dataset.id); if (ev) openEditor(ev, e.clientX, e.clientY); return; }
+  const cell = e.target.closest('.mo-cell');
+  if (cell) { state.dateISO = cell.dataset.iso; state.view = 'day'; render(); }
+});
 $('skywrap').addEventListener('dblclick', e => {
   if (e.target.closest('.event')) return;
   const h = Math.round(hourAtY(e.clientY) * 12) / 12;
@@ -500,25 +1053,38 @@ $('skywrap').addEventListener('dblclick', e => {
   events.push(ev); render();
   openEditor(ev, e.clientX, e.clientY);
 });
+function inviteeRows(instant) {
+  return '<div class="invitees"><h3 style="margin-top:2px">SAME INSTANT, EVERY SKY</h3>' +
+    INVITEES.map(inv => {
+      const L = inv.locIdx == null ? LOCS[state.loc] : LOCS[inv.locIdx];
+      const seI = sunEvents(localISO(instant, L.tz), L.lat, L.lon, L.tz);
+      const rH = seI.rise != null ? localHour(seI.rise, L.tz) : null;
+      const sH = seI.set != null ? localHour(seI.set, L.tz) : null;
+      const [main] = htLabel(localHour(instant, L.tz), rH, sH, seI.polar);
+      return `<div class="inv"><span class="who">${inv.who}</span><span class="lbl">${main} · ${clock12(localHour(instant, L.tz))}</span></div>`;
+    }).join('') + '</div>';
+}
+function placePop(pop, x, y) {
+  pop.style.display = 'block';
+  const pw = 300, px = Math.min(x + 12, window.innerWidth - pw - 16);
+  pop.style.left = `${px + window.scrollX}px`;
+  pop.style.top = `${y + 10 + window.scrollY}px`;
+}
 function openEditor(ev, x, y) {
   const pop = $('popover');
-  const s = resolveStart(ev, view.riseH, view.setH, view.polar);
-  const instant = zonedMs(state.dateISO, Math.floor(s), Math.round((s % 1) * 60), view.tz);
-  let invHTML = '';
-  if (ev.anchor === 'set' && !view.polar) {
-    invHTML = '<div class="invitees"><h3 style="margin-top:2px">SAME INSTANT, EVERY SKY</h3>' +
-      INVITEES.map(inv => {
-        const L = inv.locIdx == null ? LOCS[state.loc] : LOCS[inv.locIdx];
-        const seI = sunEvents(localISO(instant, L.tz), L.lat, L.lon, L.tz);
-        const rH = seI.rise != null ? localHour(seI.rise, L.tz) : null;
-        const sH = seI.set != null ? localHour(seI.set, L.tz) : null;
-        const [main] = htLabel(localHour(instant, L.tz), rH, sH, seI.polar);
-        return `<div class="inv"><span class="who">${inv.who}</span><span class="lbl">${main} · ${clock12(localHour(instant, L.tz))}</span></div>`;
-      }).join('') + '</div>';
-  }
+  const loc = LOCS[state.loc];
+  const se = sunFor(state.dateISO, loc);
+  const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
+  const setH = se.set != null ? localHour(se.set, loc.tz) : null;
+  const s = resolveStart(ev, riseH, setH, se.polar);
+  const instant = zonedMs(state.dateISO, Math.floor(s), Math.round((s % 1) * 60), loc.tz);
+  const [main] = htLabel(s, riseH, setH, se.polar);
+  const gurl = gcalUrl(ev.title, instant, instant + ev.dur * 3600000,
+    `${longLabel(s, riseH, setH, se.polar)} at ${loc.name} · Horizon Time (paragonday.systems) — via Sky Agenda`);
+  const invHTML = ev.anchor === 'set' && !se.polar ? inviteeRows(instant) : '';
   pop.innerHTML =
     `<h3>EVENT</h3>
-     <div class="row"><input type="text" id="evTitle" value="${ev.title.replace(/"/g, '&quot;')}"></div>
+     <div class="row"><input type="text" id="evTitle" value="${esc(ev.title)}"></div>
      <div class="row"><select id="evCat">
         ${['work', 'personal', 'team'].map(c => `<option value="${c}" ${ev.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
      </select><select id="evAnchor">
@@ -528,31 +1094,91 @@ function openEditor(ev, x, y) {
      </select></div>
      <div class="hint">Anchored events ride the sun: a tilset event keeps its distance to sunset as the season shifts. Clock events stay put.</div>
      ${invHTML}
+     <a class="gbtn" href="${gurl}" target="_blank" rel="noopener">＋ Google Calendar (today’s instance · ${main})</a>
      <div class="row" style="margin-top:10px"><button id="evDone" class="primary" style="flex:1">Done</button><button id="evDel" class="danger">Delete</button></div>`;
-  pop.style.display = 'block';
-  const pw = 300, px = Math.min(x + 12, window.innerWidth - pw - 16);
-  pop.style.left = `${px + window.scrollX}px`;
-  pop.style.top = `${y + 10 + window.scrollY}px`;
+  placePop(pop, x, y);
   $('evTitle').oninput = e2 => { ev.title = e2.target.value; render(); };
   $('evCat').onchange = e2 => { ev.cat = e2.target.value; render(); };
   $('evAnchor').onchange = e2 => {
-    const s2 = resolveStart(ev, view.riseH, view.setH, view.polar);
+    const s2 = resolveStart(ev, riseH, setH, se.polar);
     ev.anchor = e2.target.value;
-    anchorFrom(ev, s2, view.riseH, view.setH, view.polar);
+    anchorFrom(ev, s2, riseH, setH, se.polar);
     render(); openEditor(ev, x, y);
   };
   $('evDone').onclick = () => { pop.style.display = 'none'; };
   $('evDel').onclick = () => { events = events.filter(x => x.id !== ev.id); pop.style.display = 'none'; render(); };
 }
+function openImported(imp, x, y) {
+  if (!imp) return;
+  const pop = $('popover');
+  const loc = LOCS[state.loc];
+  if (imp.allDay) {
+    pop.innerHTML = `<h3>GOOGLE CALENDAR · ALL DAY</h3><div class="hint"><b style="color:var(--ink)">${esc(imp.title)}</b><br>${imp.dateISO}</div>
+      <div class="row" style="margin-top:8px"><button id="evDone" class="primary" style="flex:1">Close</button></div>`;
+  } else {
+    const iso = localISO(imp.startMs, loc.tz);
+    const se = sunFor(iso, loc);
+    const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
+    const setH = se.set != null ? localHour(se.set, loc.tz) : null;
+    const s = localHour(imp.startMs, loc.tz);
+    const [main, sub] = htLabel(s, riseH, setH, se.polar);
+    const gurl = gcalUrl(imp.title, imp.startMs, imp.endMs,
+      `${longLabel(s, riseH, setH, se.polar)} at ${loc.name} · Horizon Time (paragonday.systems) — via Sky Agenda`);
+    pop.innerHTML =
+      `<h3>GOOGLE CALENDAR EVENT</h3>
+       <div class="hint"><b style="color:var(--ink);font-size:14px">${esc(imp.title)}</b><br>
+       ${main} · ${sub}<br>${clock12(s)}–${clock12(s + (imp.endMs - imp.startMs) / 3600000)} · ${iso}</div>
+       ${inviteeRows(imp.startMs)}
+       <a class="gbtn" href="${gurl}" target="_blank" rel="noopener">↗ open template in Google Calendar</a>
+       <div class="row" style="margin-top:10px"><button id="evDone" class="primary" style="flex:1">Close</button></div>`;
+  }
+  placePop(pop, x, y);
+  $('evDone').onclick = () => { pop.style.display = 'none'; };
+}
 document.addEventListener('pointerdown', e => {
-  if (!e.target.closest('#popover') && !e.target.closest('.event')) $('popover').style.display = 'none';
+  if (!e.target.closest('#popover') && !e.target.closest('.event') && !e.target.closest('.wk-ev')) $('popover').style.display = 'none';
 }, true);
+/* ================= ICS panel wiring ================= */
+function refreshPanel() {
+  $('importStat').innerHTML = imports.length
+    ? `<b>${imports.length}</b> event instances imported — purple cards/dots. They live only in your browser (localStorage).`
+    : 'Nothing imported yet.';
+  $('samplesChk').checked = state.samples;
+}
+$('gcalBtn').onclick = () => { const p = $('gcalPanel'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; refreshPanel(); };
+$('closePanel').onclick = () => { $('gcalPanel').style.display = 'none'; };
+$('clearImports').onclick = () => { imports = []; saveImports(); refreshPanel(); render(); };
+$('samplesChk').onchange = e => { state.samples = e.target.checked; saveImports(); render(); };
+$('dropZone').onclick = () => $('icsFile').click();
+$('icsFile').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => alertCount(importICSText(t))); };
+function alertCount(n) { $('importStat').innerHTML = `<b>${n}</b> instances just imported ✓ (total ${imports.length}).`; }
+document.addEventListener('dragover', e => { e.preventDefault(); $('dropZone').classList.add('hot'); });
+document.addEventListener('dragleave', () => $('dropZone').classList.remove('hot'));
+document.addEventListener('drop', e => {
+  e.preventDefault(); $('dropZone').classList.remove('hot');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) { $('gcalPanel').style.display = 'block'; f.text().then(t => alertCount(importICSText(t))); }
+});
+$('icsFetch').onclick = () => {
+  const u = $('icsUrl').value.trim(); if (!u) return;
+  $('importStat').textContent = 'fetching…';
+  fetch(u).then(r => { if (!r.ok) throw 0; return r.text(); }).then(t => alertCount(importICSText(t)))
+    .catch(() => { $('importStat').innerHTML = '⚠︎ Fetch blocked (CORS — normal for Google secret addresses). Download the .ics and drop it here instead.'; });
+};
 /* ================= controls ================= */
 const locSel = $('locSel');
 LOCS.forEach((L, i) => locSel.add(new Option(L.name, i)));
 locSel.onchange = () => { state.loc = +locSel.value; goToday(false); };
-$('prevBtn').onclick = () => { state.dateISO = shiftISO(state.dateISO, -1); render(); };
-$('nextBtn').onclick = () => { state.dateISO = shiftISO(state.dateISO, 1); render(); };
+document.querySelectorAll('#viewTabs button').forEach(b => b.onclick = () => { state.view = b.dataset.view; render(); });
+$('prevBtn').onclick = () => { step(-1); };
+$('nextBtn').onclick = () => { step(1); };
+function step(dir) {
+  if (state.view === 'day') state.dateISO = shiftISO(state.dateISO, dir);
+  else if (state.view === 'week') state.dateISO = shiftISO(state.dateISO, 7 * dir);
+  else if (state.view === 'month') state.dateISO = shiftMonthISO(state.dateISO, dir);
+  else state.dateISO = shiftMonthISO(state.dateISO, 12 * dir);
+  render();
+}
 $('todayBtn').onclick = () => goToday(true);
 $('themeBtn').onclick = () => {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
@@ -563,12 +1189,15 @@ function goToday(force) {
   if (force || !state.dateISO) state.dateISO = localISO(Date.now(), tz);
   render();
 }
-// deep-link support: #theme=light&loc=5&date=2026-12-21
+// deep-link support: #theme=light&loc=5&date=2026-12-21&view=week&ics=<url>
 const hp = new URLSearchParams(location.hash.slice(1));
 if (hp.get('theme') === 'light') { state.theme = 'light'; document.body.dataset.theme = 'light'; }
 if (hp.get('loc')) { state.loc = Math.max(0, Math.min(+hp.get('loc') || 0, LOCS.length - 1)); locSel.value = state.loc; }
 if (/^\d{4}-\d{2}-\d{2}$/.test(hp.get('date') || '')) state.dateISO = hp.get('date');
+if (['day', 'week', 'month', 'year'].includes(hp.get('view'))) state.view = hp.get('view');
+if (hp.get('samples') === '0') state.samples = false;
 goToday(!state.dateISO);
+if (hp.get('ics')) fetch(hp.get('ics')).then(r => r.text()).then(t => importICSText(t)).catch(() => {});
 setInterval(render, 30000); // keep NOW line honest
 </script>
 </body>
