@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paragonday — Sky Agenda</title>
+<style>
+  :root {
+    --page: #0d0d0d;
+    --surf: #1a1a19;
+    --surf2: #232322;
+    --ink: #ffffff;
+    --ink-sec: #c3c2b7;
+    --ink-mut: #898781;
+    --hair: #2c2c2a;
+    --gold: #f2b13d;
+    --gold-ink: #f2b13d;
+    --cat-work: #3987e5;
+    --cat-personal: #199e70;
+    --cat-team: #d95926;
+    --card-day-bg: #fcfcfb;
+    --card-day-ink: #0b0b0b;
+    --card-day-mut: #52514e;
+    --card-night-bg: #1a1a19;
+    --card-night-ink: #ffffff;
+    --card-night-mut: #c3c2b7;
+    --zenith: #5a76a8;
+    --dusk: #ee8a3f;
+  }
+  [data-theme="light"] {
+    --page: #f4f2ec;
+    --surf: #ffffff;
+    --surf2: #eceae2;
+    --ink: #0b0b0b;
+    --ink-sec: #4d4c47;
+    --ink-mut: #83817a;
+    --hair: #dcdad2;
+    --gold: #b07c14;
+    --gold-ink: #8a6a1f;
+    --cat-work: #2a78d6;
+    --cat-personal: #1baf7a;
+    --cat-team: #eb6834;
+    --zenith: #7b93c2;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    max-width: 1040px; margin: 0 auto; padding: 28px 24px 14px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 22px;
+  }
+  .brand { color: var(--gold); font-weight: 700; letter-spacing: 6px; font-size: 15px; }
+  h1 { font-size: 26px; font-weight: 700; width: 100%; margin-top: 2px; }
+  .controls {
+    max-width: 1040px; margin: 0 auto; padding: 0 24px 10px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  }
+  select, button {
+    background: var(--surf); color: var(--ink); border: 1px solid var(--hair);
+    border-radius: 9px; padding: 8px 12px; font-size: 14px; font-family: inherit;
+    cursor: pointer;
+  }
+  select:hover, button:hover { border-color: var(--ink-mut); }
+  button.primary { border-color: var(--gold); color: var(--gold); font-weight: 600; }
+  .daystats {
+    max-width: 1040px; margin: 0 auto; padding: 4px 24px 12px;
+    display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 14px; color: var(--ink-sec);
+  }
+  .daystats b { color: var(--ink); font-weight: 600; }
+  .delta-neg { color: var(--dusk); }
+  .delta-pos { color: var(--cat-personal); }
+  .polar-note {
+    max-width: 1040px; margin: 0 auto 10px; padding: 10px 16px;
+    background: var(--surf); border: 1px solid var(--gold); border-radius: 10px;
+    font-size: 14px; color: var(--ink-sec); display: none;
+  }
+  #stage {
+    max-width: 1040px; margin: 0 auto 60px; padding: 0 24px;
+    display: flex; align-items: stretch;
+  }
+  #gutter { width: 168px; position: relative; flex: none; }
+  #skywrap { flex: 1; position: relative; }
+  #sky {
+    position: absolute; inset: 0; border-radius: 18px; overflow: hidden;
+  }
+  .tick { position: absolute; right: 14px; text-align: right; transform: translateY(-50%); }
+  .tick .main { font-size: 14.5px; font-weight: 600; color: var(--ink-sec); white-space: nowrap; }
+  .tick .sub { font-size: 11.5px; color: var(--ink-mut); white-space: nowrap; }
+  .tickmark { position: absolute; left: 0; width: 14px; height: 1.5px; background: rgba(255,255,255,.45); }
+  [data-theme="light"] .tickmark { background: rgba(0,0,0,.3); }
+  .horizon { position: absolute; left: 0; right: 0; height: 2.5px; z-index: 7; pointer-events: none; }
+  .horizon .pill {
+    position: absolute; top: -28px; padding: 4px 11px; border-radius: 12px;
+    background: rgba(13,13,13,.85); font-size: 12.5px; font-weight: 700; letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .zenith { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--zenith); z-index: 4; }
+  .zenith span { position: absolute; right: 12px; top: -20px; font-size: 12px; font-weight: 600; color: var(--zenith); }
+  .event {
+    position: absolute; left: 84px; right: 28px; border-radius: 12px; padding: 9px 14px 8px 18px;
+    cursor: grab; z-index: 6; overflow: hidden; user-select: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  }
+  .event:active { cursor: grabbing; }
+  .event .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 2.5px; }
+  .event .t { font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .event .m { font-size: 12.5px; margin-top: 2px; }
+  .event .anchor-badge {
+    display: inline-block; margin-top: 4px; font-size: 11.5px; font-weight: 600;
+    color: #8a6a1f; background: rgba(242,177,61,.16); border-radius: 8px; padding: 2px 8px;
+    cursor: pointer;
+  }
+  .event.hot { outline: 2.5px solid #f2b13d; }
+  .nowline { position: absolute; left: -6px; right: 0; height: 3px; background: #f2b13d; z-index: 8; box-shadow: 0 0 18px rgba(255,217,138,.8); }
+  .nowdot { position: absolute; left: 28px; top: -5px; width: 13px; height: 13px; border-radius: 50%; background: #f2b13d; border: 2px solid #0d0d0d; }
+  .nowbadge {
+    position: absolute; right: 14px; width: 148px; transform: translateY(-50%);
+    background: var(--surf); border: 1.5px solid var(--gold); border-radius: 10px;
+    padding: 7px 12px; z-index: 8;
+  }
+  .nowbadge .k { font-size: 10.5px; font-weight: 700; letter-spacing: 2px; color: var(--gold); }
+  .nowbadge .v { font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 1px; white-space: nowrap; }
+  .nowbadge .c { font-size: 11px; color: var(--ink-mut); margin-top: 1px; }
+  #popover {
+    position: absolute; z-index: 20; width: 300px; background: var(--surf);
+    border: 1px solid var(--hair); border-radius: 14px; padding: 14px 16px; display: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,.45);
+  }
+  #popover h3 { font-size: 13px; letter-spacing: 1px; color: var(--gold); margin-bottom: 8px; }
+  #popover .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  #popover input[type=text] {
+    flex: 1; background: var(--surf2); border: 1px solid var(--hair); color: var(--ink);
+    border-radius: 8px; padding: 7px 10px; font-size: 14px; font-family: inherit;
+  }
+  #popover select { flex: 1; }
+  #popover .hint { font-size: 12px; color: var(--ink-mut); line-height: 1.45; margin: 6px 0; }
+  #popover .invitees { border-top: 1px solid var(--hair); margin-top: 8px; padding-top: 8px; }
+  #popover .inv { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  #popover .inv .who { color: var(--ink-sec); }
+  #popover .inv .lbl { font-weight: 600; color: var(--ink); }
+  #popover .danger { color: #e05b4d; border-color: #e05b4d; }
+  footer { max-width: 1040px; margin: 0 auto 48px; padding: 0 24px; font-size: 13.5px; color: var(--ink-mut); line-height: 1.6; }
+  .kbd { font-size: 12px; color: var(--ink-mut); }
+</style>
+</head>
+<body data-theme="dark">
+
+<header>
+  <span class="brand">PARAGONDAY</span>
+  <h1>Sky Agenda <span style="font-weight:400;color:var(--ink-mut);font-size:17px">— the day view where the ruler is solar</span></h1>
+</header>
+
+<div class="controls">
+  <select id="locSel"></select>
+  <button id="prevBtn">◀︎</button>
+  <button id="todayBtn" class="primary">Today</button>
+  <button id="nextBtn">▶︎</button>
+  <span id="dateLabel" style="font-size:15px;font-weight:600;margin-left:4px"></span>
+  <span style="flex:1"></span>
+  <button id="themeBtn">☾ / ☀︎</button>
+</div>
+
+<div class="daystats" id="daystats"></div>
+<div class="polar-note" id="polarNote"></div>
+
+<div id="stage">
+  <div id="gutter"></div>
+  <div id="skywrap"><div id="sky"></div></div>
+</div>
+<div id="popover"></div>
+
+<footer>
+  Double-click the sky to add an event · drag a card to move it · click a card to edit, change its anchor, or see how invitees read it.<br>
+  Events anchored in <b>tilset</b> ride the sunset: flip through dates and watch “Dinner” track the light while clock-anchored events stay put.<br>
+  Sunrise/sunset via the NOAA solar position algorithm (USNO −0.8333° convention), computed live in your browser. Horizon Time leads; legacy clock rides along as a subtitle.
+</footer>
+
+<script>
+'use strict';
+/* ================= solar math (NOAA) ================= */
+const RAD = Math.PI / 180;
+function julianDay(ms) { return ms / 86400000 + 2440587.5; }
+function solarCalc(jd) { // returns {declination deg, eqTime minutes}
+  const t = (jd - 2451545) / 36525;
+  const L0 = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
+  const M = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+  const e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+  const C = Math.sin(M * RAD) * (1.914602 - t * (0.004817 + 0.000014 * t))
+          + Math.sin(2 * M * RAD) * (0.019993 - 0.000101 * t)
+          + Math.sin(3 * M * RAD) * 0.000289;
+  const trueLong = L0 + C;
+  const omega = 125.04 - 1934.136 * t;
+  const lambda = trueLong - 0.00569 - 0.00478 * Math.sin(omega * RAD);
+  const eps0 = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60;
+  const eps = eps0 + 0.00256 * Math.cos(omega * RAD);
+  const decl = Math.asin(Math.sin(eps * RAD) * Math.sin(lambda * RAD)) / RAD;
+  const y = Math.tan(eps / 2 * RAD) ** 2;
+  const eqTime = 4 / RAD * (y * Math.sin(2 * L0 * RAD) - 2 * e * Math.sin(M * RAD)
+    + 4 * e * y * Math.sin(M * RAD) * Math.cos(2 * L0 * RAD)
+    - 0.5 * y * y * Math.sin(4 * L0 * RAD) - 1.25 * e * e * Math.sin(2 * M * RAD));
+  return { decl, eqTime };
+}
+// sun events for the local calendar date at (lat,lon,tz). Returns UTC ms or null (polar).
+function sunEvents(dateISO, lat, lon, tz) {
+  const noonGuess = zonedMs(dateISO, 12, 0, tz);
+  let { decl, eqTime } = solarCalc(julianDay(noonGuess));
+  // anchor to the UTC day containing local noon
+  const utcDayStart = Math.floor(noonGuess / 86400000) * 86400000;
+  const solarNoon = utcDayStart + (720 - 4 * lon - eqTime) * 60000;
+  ({ decl, eqTime } = solarCalc(julianDay(solarNoon)));
+  const cosHA = (Math.cos(90.833 * RAD) - Math.sin(lat * RAD) * Math.sin(decl * RAD))
+              / (Math.cos(lat * RAD) * Math.cos(decl * RAD));
+  const noon2 = utcDayStart + (720 - 4 * lon - eqTime) * 60000;
+  if (cosHA > 1)  return { rise: null, set: null, noon: noon2, polar: 'night', decl };
+  if (cosHA < -1) return { rise: null, set: null, noon: noon2, polar: 'day', decl };
+  const haMin = Math.acos(cosHA) / RAD * 4; // minutes
+  return { rise: noon2 - haMin * 60000, set: noon2 + haMin * 60000, noon: noon2, polar: null, decl };
+}
+/* ================= timezone helpers ================= */
+const fmtCache = {};
+function tzFmt(tz) {
+  return fmtCache[tz] || (fmtCache[tz] = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }));
+}
+function partsIn(ms, tz) {
+  const p = {};
+  for (const { type, value } of tzFmt(tz).formatToParts(ms)) p[type] = value;
+  return p;
+}
+function localHour(ms, tz) { // decimal hour of day in tz
+  const p = partsIn(ms, tz);
+  return (p.hour % 24 | 0) % 24 + p.minute / 60 + p.second / 3600;
+}
+function localISO(ms, tz) { const p = partsIn(ms, tz); return `${p.year}-${p.month}-${p.day}`; }
+// UTC ms for wall time h:m on dateISO in tz (two-pass offset estimation)
+function zonedMs(dateISO, h, m, tz) {
+  const [Y, Mo, D] = dateISO.split('-').map(Number);
+  let guess = Date.UTC(Y, Mo - 1, D, h, m);
+  for (let i = 0; i < 2; i++) {
+    const p = partsIn(guess, tz);
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, (+p.hour) % 24, +p.minute, +p.second);
+    guess += Date.UTC(Y, Mo - 1, D, h, m) - asUTC;
+  }
+  return guess;
+}
+function shiftISO(dateISO, days) {
+  const [Y, M, D] = dateISO.split('-').map(Number);
+  const d = new Date(Date.UTC(Y, M - 1, D + days));
+  return d.toISOString().slice(0, 10);
+}
+/* ================= formatting ================= */
+function hhmm(hours) {
+  const m = Math.round(Math.abs(hours) * 60);
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+}
+function clock12(h) {
+  const m = Math.round(((h % 24) + 24) % 24 * 60), H = Math.floor(m / 60) % 24, M = m % 60;
+  return `${H % 12 || 12}:${String(M).padStart(2, '0')}${H < 12 ? 'a' : 'p'}`;
+}
+// Horizon Time pair for local decimal hour t given local rise/set hours
+function htLabel(t, rise, set, polar) {
+  if (polar === 'day')   return [`−${hhmm(24 - t)} TS`, `+${hhmm(t)} PR`, 'sundip-referenced'];
+  if (polar === 'night') return [`−${hhmm(24 - t)} TR`, `+${hhmm(t)} PS`, 'sundip-referenced'];
+  if (t >= rise && t <= set) return [`−${hhmm(set - t)} TS`, `+${hhmm(t - rise)} PR`, null];
+  if (t > set) return [`+${hhmm(t - set)} PS`, `−${hhmm(24 + rise - t)} TR`, null];
+  return [`−${hhmm(rise - t)} TR`, `+${hhmm(t - (set - 24))} PS`, null];
+}
+function longLabel(t, rise, set, polar) {
+  const [a] = htLabel(t, rise, set, polar);
+  const words = { TS: 'tilset', PR: 'pastrise', TR: 'tilrise', PS: 'pastset' };
+  return a.replace(/(TS|PR|TR|PS)/, m => words[m]);
+}
+/* ================= locations & state ================= */
+const LOCS = [
+  { name: 'San Francisco', lat: 37.7749, lon: -122.4194, tz: 'America/Los_Angeles' },
+  { name: 'Brooklyn (norm)', lat: 40.6782, lon: -73.9442, tz: 'America/New_York' },
+  { name: 'Keeseville, NY (Benji)', lat: 44.5051, lon: -73.4818, tz: 'America/New_York' },
+  { name: 'Atlanta', lat: 33.749, lon: -84.388, tz: 'America/New_York' },
+  { name: 'Reykjavík', lat: 64.1466, lon: -21.9426, tz: 'Atlantic/Reykjavik' },
+  { name: 'Tromsø (polar)', lat: 69.6492, lon: 18.9553, tz: 'Europe/Oslo' },
+  { name: 'Sydney', lat: -33.8688, lon: 151.2093, tz: 'Australia/Sydney' },
+  { name: 'Quito (equator)', lat: -0.1807, lon: -78.4678, tz: 'America/Guayaquil' },
+];
+const INVITEES = [
+  { who: 'You', locIdx: null },           // current location
+  { who: 'norm · Brooklyn', locIdx: 1 },
+  { who: 'Benji · Keeseville', locIdx: 2 },
+];
+// anchor: 'clock' (start=local hour) | 'rise' (start=hours after sunrise) | 'set' (start=hours rel. sunset)
+let events = [
+  { id: 1, title: 'Standup', cat: 'work', anchor: 'rise', start: 2.0, dur: 0.5 },
+  { id: 2, title: 'Deep work — spec draft', cat: 'personal', anchor: 'clock', start: 9 + 35 / 60, dur: 2 },
+  { id: 3, title: 'Call — norm & chaz', cat: 'team', anchor: 'set', start: -6.75, dur: 1.25, hot: true },
+  { id: 4, title: 'Dinner', cat: 'personal', anchor: 'set', start: -0.5, dur: 0.8 },
+  { id: 5, title: 'Stargazing', cat: 'work', anchor: 'set', start: 1.05, dur: 0.75 },
+];
+let nextId = 6;
+const state = { loc: 0, dateISO: null, theme: 'dark' };
+/* ================= view ================= */
+const $ = id => document.getElementById(id);
+const stagePad = { top: 30, bottom: 30 };
+let view = null; // {t0,t1,riseH,setH,noonH,polar,pxPerHour,H}
+
+function resolveStart(ev, riseH, setH, polar) {
+  if (ev.anchor === 'clock' || polar) return ev.anchor === 'clock' ? ev.start : (ev.anchor === 'rise' ? ev.start + 6 : 18 + ev.start);
+  return ev.anchor === 'rise' ? riseH + ev.start : setH + ev.start;
+}
+function anchorFrom(ev, newStartH, riseH, setH, polar) {
+  if (ev.anchor === 'clock' || polar) { ev.start = newStartH; if (polar) ev.anchor = 'clock'; return; }
+  ev.start = ev.anchor === 'rise' ? newStartH - riseH : newStartH - setH;
+}
+function skyGradient(t0, t1, riseH, setH, polar) {
+  const pct = t => `${((t - t0) / (t1 - t0) * 100).toFixed(2)}%`;
+  if (polar === 'night') return 'linear-gradient(#131c3a, #0e1832 55%, #131c3a)';
+  if (polar === 'day') return 'linear-gradient(#cfe0f5, #dce9f8 45%, #f3cfa0)';
+  const stops = [
+    [t0, '#131c3a'], [riseH - 0.25, '#3a3a63'], [riseH, '#f0a44c'],
+    [riseH + 1.6, '#cfe0f5'], [(riseH + setH) / 2, '#dce9f8'], [setH - 1.6, '#f3cfa0'],
+    [setH, '#ee8a3f'], [setH + 0.55, '#2c2c55'], [t1, '#0e1832'],
+  ];
+  return `linear-gradient(${stops.map(([t, c]) => `${c} ${pct(t)}`).join(', ')})`;
+}
+function render() {
+  const loc = LOCS[state.loc];
+  const se = sunEvents(state.dateISO, loc.lat, loc.lon, loc.tz);
+  const seY = sunEvents(shiftISO(state.dateISO, -1), loc.lat, loc.lon, loc.tz);
+  const riseH = se.rise != null ? localHour(se.rise, loc.tz) : null;
+  const setH = se.set != null ? localHour(se.set, loc.tz) : null;
+  const noonH = localHour(se.noon, loc.tz);
+  const polar = se.polar;
+  const t0 = polar ? 0 : Math.max(0, riseH - 1.5);
+  const t1 = polar ? 24 : Math.min(24, setH + 2.5);
+  const pxPerHour = 62;
+  const H = (t1 - t0) * pxPerHour + stagePad.top + stagePad.bottom;
+  view = { t0, t1, riseH, setH, noonH, polar, pxPerHour, H, tz: loc.tz };
+  const Y = t => stagePad.top + (t - t0) * pxPerHour;
+
+  $('dateLabel').textContent = new Date(zonedMs(state.dateISO, 12, 0, loc.tz))
+    .toLocaleDateString('en-US', { timeZone: loc.tz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  // day stats
+  const stats = $('daystats');
+  if (!polar) {
+    const dayLen = setH - riseH;
+    let deltaTxt = '';
+    if (seY.rise != null) {
+      const dY = localHour(seY.set, loc.tz) - localHour(seY.rise, loc.tz);
+      const dMin = Math.round((dayLen - dY) * 60);
+      deltaTxt = `<span class="${dMin < 0 ? 'delta-neg' : 'delta-pos'}">${dMin < 0 ? '▼' : '▲'} ${Math.abs(dMin)} min vs yesterday</span>`;
+    }
+    stats.innerHTML =
+      `<span>sunrise <b>${clock12(riseH)}</b></span><span>sunset <b>${clock12(setH)}</b></span>` +
+      `<span>zenith <b>${clock12(noonH)}</b></span><span>day length <b>${hhmm(dayLen)}</b></span>${deltaTxt}`;
+  } else {
+    stats.innerHTML = `<span>zenith <b>${clock12(noonH)}</b></span><span>day length <b>${polar === 'day' ? '24:00' : '0:00'}</b></span>`;
+  }
+  const note = $('polarNote');
+  if (polar) {
+    note.style.display = 'block';
+    note.innerHTML = polar === 'day'
+      ? '☀︎ <b>Midnight sun.</b> No sunset today — the sun’s nadir counts as a collapsed sunset+sunrise: a <b>sundip</b>. Labels run from sundip to sundip.'
+      : '☾ <b>Polar night.</b> No sunrise today — the sun’s nadir is the <b>sundip</b>, a collapsed sunset+sunrise. Labels run from sundip to sundip.';
+  } else note.style.display = 'none';
+
+  // stage
+  const gutter = $('gutter'), skywrap = $('skywrap'), sky = $('sky');
+  gutter.style.height = skywrap.style.height = `${H}px`;
+  gutter.innerHTML = ''; skywrap.querySelectorAll(':scope > :not(#sky)').forEach(n => n.remove());
+  sky.style.top = `${stagePad.top}px`; sky.style.bottom = `${stagePad.bottom}px`;
+  sky.style.background = skyGradient(t0, t1, riseH, setH, polar);
+
+  // ruler ticks: every 2h from sunrise, plus night-side hours
+  const ticks = [];
+  if (!polar) {
+    for (let k = 0; riseH + k <= setH; k += 2) ticks.push(riseH + k);
+    ticks.push(setH + 1, setH + 2, riseH - 1);
+  } else for (let k = 1; k < 24; k += 3) ticks.push(k);
+  for (const t of ticks) {
+    if (t < t0 + 0.2 || t > t1 - 0.2) continue;
+    const [main, sub] = htLabel(t, riseH, setH, polar);
+    const el = document.createElement('div');
+    el.className = 'tick'; el.style.top = `${Y(t)}px`;
+    el.innerHTML = `<div class="main">${main}</div><div class="sub">${sub} · ${clock12(t)}</div>`;
+    gutter.appendChild(el);
+    const tm = document.createElement('div');
+    tm.className = 'tickmark'; tm.style.top = `${Y(t)}px`;
+    skywrap.appendChild(tm);
+  }
+
+  // zenith
+  const z = document.createElement('div');
+  z.className = 'zenith'; z.style.top = `${Y(noonH)}px`;
+  z.innerHTML = `<span>zenith · ${clock12(noonH)}</span>`;
+  skywrap.appendChild(z);
+
+  // horizons
+  if (!polar) {
+    for (const [t, lab, col, side] of [
+      [riseH, `SUNRISE · +0:00 PR · ${clock12(riseH)}`, '#f2b13d', 'left'],
+      [setH, `SUNSET · +0:00 PS · ${clock12(setH)}`, '#ee8a3f', 'right'],
+    ]) {
+      const hEl = document.createElement('div');
+      hEl.className = 'horizon'; hEl.style.top = `${Y(t)}px`; hEl.style.background = col;
+      hEl.innerHTML = `<span class="pill" style="color:${col};${side}:16px">${lab}</span>`;
+      skywrap.appendChild(hEl);
+    }
+  } else {
+    const dipH = (noonH + 12) % 24;
+    const hEl = document.createElement('div');
+    hEl.className = 'horizon'; hEl.style.top = `${Y(dipH)}px`; hEl.style.background = '#f2b13d';
+    hEl.innerHTML = `<span class="pill" style="color:#f2b13d;left:16px">SUNDIP · ${clock12(dipH)}</span>`;
+    skywrap.appendChild(hEl);
+  }
+
+  // events (sorted; overlapping cards cascade right so none fully hides another)
+  const sorted = [...events].map(ev => ({ ev, s: resolveStart(ev, riseH, setH, polar) }))
+    .filter(x => x.s != null && x.s + x.ev.dur >= t0 && x.s <= t1)
+    .sort((a, b) => a.s - b.s);
+  const active = [];
+  for (const { ev, s } of sorted) {
+    while (active.length && active[active.length - 1] <= s + 0.02) active.pop();
+    const depth = active.length;
+    active.push(s + ev.dur);
+    const el = document.createElement('div');
+    const night = polar ? polar === 'night' : (s < riseH || s >= setH);
+    el.className = 'event' + (ev.hot ? ' hot' : '');
+    el.style.left = `${84 + depth * 26}px`;
+    el.style.zIndex = 6 + depth;
+    el.style.top = `${Y(s)}px`;
+    const showBadge = ev.anchor !== 'clock' && !polar;
+    el.style.height = `${Math.max(ev.dur * pxPerHour, showBadge ? 78 : 52)}px`;
+    el.style.background = night ? 'var(--card-night-bg)' : 'var(--card-day-bg)';
+    el.style.color = night ? 'var(--card-night-ink)' : 'var(--card-day-ink)';
+    const mut = night ? 'var(--card-night-mut)' : 'var(--card-day-mut)';
+    const cat = getComputedStyle(document.body).getPropertyValue(`--cat-${ev.cat}`);
+    const [main, sub] = htLabel(s, riseH, setH, polar);
+    const anchorTxt = { clock: null, rise: 'anchored in pastrise', set: 'anchored in tilset' }[ev.anchor];
+    el.innerHTML =
+      `<div class="bar" style="background:${cat}"></div>` +
+      `<div class="t">${ev.title}</div>` +
+      `<div class="m" style="color:${mut}">${main} · ${sub} · ${clock12(s)}–${clock12(s + ev.dur)}</div>` +
+      (showBadge && anchorTxt ? `<div class="anchor-badge">☉ ${anchorTxt}${ev.hot ? ' — each invitee sees their own sky' : ''}</div>` : '');
+    el.dataset.id = ev.id;
+    skywrap.appendChild(el);
+  }
+
+  // now line
+  const nowMs = Date.now();
+  if (localISO(nowMs, loc.tz) === state.dateISO) {
+    const tn = localHour(nowMs, loc.tz);
+    if (tn >= t0 && tn <= t1) {
+      const nl = document.createElement('div');
+      nl.className = 'nowline'; nl.style.top = `${Y(tn)}px`;
+      nl.innerHTML = '<div class="nowdot"></div>';
+      skywrap.appendChild(nl);
+      const [main, sub] = htLabel(tn, riseH, setH, polar);
+      const nb = document.createElement('div');
+      nb.className = 'nowbadge'; nb.style.top = `${Y(tn)}px`;
+      nb.innerHTML = `<div class="k">NOW</div><div class="v">${main} · ${sub}</div><div class="c">${longLabel(tn, riseH, setH, polar)} · ${clock12(tn)}</div>`;
+      gutter.appendChild(nb);
+    }
+  }
+}
+/* ================= interactions ================= */
+function hourAtY(clientY) {
+  const r = $('skywrap').getBoundingClientRect();
+  return view.t0 + (clientY - r.top - stagePad.top) / view.pxPerHour;
+}
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const card = e.target.closest('.event');
+  if (!card || e.target.closest('.anchor-badge')) return;
+  const ev = events.find(x => x.id === +card.dataset.id);
+  drag = { ev, startY: e.clientY, startH: resolveStart(ev, view.riseH, view.setH, view.polar), moved: false };
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dh = (e.clientY - drag.startY) / view.pxPerHour;
+  if (Math.abs(e.clientY - drag.startY) > 4) drag.moved = true;
+  if (drag.moved) {
+    const snapped = Math.round((drag.startH + dh) * 12) / 12; // 5-min snap
+    anchorFrom(drag.ev, snapped, view.riseH, view.setH, view.polar);
+    render();
+  }
+});
+document.addEventListener('pointerup', e => {
+  if (drag && !drag.moved) openEditor(drag.ev, e.clientX, e.clientY);
+  drag = null;
+});
+$('skywrap').addEventListener('dblclick', e => {
+  if (e.target.closest('.event')) return;
+  const h = Math.round(hourAtY(e.clientY) * 12) / 12;
+  const ev = { id: nextId++, title: 'New event', cat: 'work', anchor: 'clock', start: h, dur: 1 };
+  events.push(ev); render();
+  openEditor(ev, e.clientX, e.clientY);
+});
+function openEditor(ev, x, y) {
+  const pop = $('popover');
+  const s = resolveStart(ev, view.riseH, view.setH, view.polar);
+  const instant = zonedMs(state.dateISO, Math.floor(s), Math.round((s % 1) * 60), view.tz);
+  let invHTML = '';
+  if (ev.anchor === 'set' && !view.polar) {
+    invHTML = '<div class="invitees"><h3 style="margin-top:2px">SAME INSTANT, EVERY SKY</h3>' +
+      INVITEES.map(inv => {
+        const L = inv.locIdx == null ? LOCS[state.loc] : LOCS[inv.locIdx];
+        const seI = sunEvents(localISO(instant, L.tz), L.lat, L.lon, L.tz);
+        const rH = seI.rise != null ? localHour(seI.rise, L.tz) : null;
+        const sH = seI.set != null ? localHour(seI.set, L.tz) : null;
+        const [main] = htLabel(localHour(instant, L.tz), rH, sH, seI.polar);
+        return `<div class="inv"><span class="who">${inv.who}</span><span class="lbl">${main} · ${clock12(localHour(instant, L.tz))}</span></div>`;
+      }).join('') + '</div>';
+  }
+  pop.innerHTML =
+    `<h3>EVENT</h3>
+     <div class="row"><input type="text" id="evTitle" value="${ev.title.replace(/"/g, '&quot;')}"></div>
+     <div class="row"><select id="evCat">
+        ${['work', 'personal', 'team'].map(c => `<option value="${c}" ${ev.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
+     </select><select id="evAnchor">
+        <option value="clock" ${ev.anchor === 'clock' ? 'selected' : ''}>clock-anchored</option>
+        <option value="rise" ${ev.anchor === 'rise' ? 'selected' : ''}>pastrise-anchored</option>
+        <option value="set" ${ev.anchor === 'set' ? 'selected' : ''}>tilset-anchored</option>
+     </select></div>
+     <div class="hint">Anchored events ride the sun: a tilset event keeps its distance to sunset as the season shifts. Clock events stay put.</div>
+     ${invHTML}
+     <div class="row" style="margin-top:10px"><button id="evDone" class="primary" style="flex:1">Done</button><button id="evDel" class="danger">Delete</button></div>`;
+  pop.style.display = 'block';
+  const pw = 300, px = Math.min(x + 12, window.innerWidth - pw - 16);
+  pop.style.left = `${px + window.scrollX}px`;
+  pop.style.top = `${y + 10 + window.scrollY}px`;
+  $('evTitle').oninput = e2 => { ev.title = e2.target.value; render(); };
+  $('evCat').onchange = e2 => { ev.cat = e2.target.value; render(); };
+  $('evAnchor').onchange = e2 => {
+    const s2 = resolveStart(ev, view.riseH, view.setH, view.polar);
+    ev.anchor = e2.target.value;
+    anchorFrom(ev, s2, view.riseH, view.setH, view.polar);
+    render(); openEditor(ev, x, y);
+  };
+  $('evDone').onclick = () => { pop.style.display = 'none'; };
+  $('evDel').onclick = () => { events = events.filter(x => x.id !== ev.id); pop.style.display = 'none'; render(); };
+}
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('#popover') && !e.target.closest('.event')) $('popover').style.display = 'none';
+}, true);
+/* ================= controls ================= */
+const locSel = $('locSel');
+LOCS.forEach((L, i) => locSel.add(new Option(L.name, i)));
+locSel.onchange = () => { state.loc = +locSel.value; goToday(false); };
+$('prevBtn').onclick = () => { state.dateISO = shiftISO(state.dateISO, -1); render(); };
+$('nextBtn').onclick = () => { state.dateISO = shiftISO(state.dateISO, 1); render(); };
+$('todayBtn').onclick = () => goToday(true);
+$('themeBtn').onclick = () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.body.dataset.theme = state.theme; render();
+};
+function goToday(force) {
+  const tz = LOCS[state.loc].tz;
+  if (force || !state.dateISO) state.dateISO = localISO(Date.now(), tz);
+  render();
+}
+// deep-link support: #theme=light&loc=5&date=2026-12-21
+const hp = new URLSearchParams(location.hash.slice(1));
+if (hp.get('theme') === 'light') { state.theme = 'light'; document.body.dataset.theme = 'light'; }
+if (hp.get('loc')) { state.loc = Math.max(0, Math.min(+hp.get('loc') || 0, LOCS.length - 1)); locSel.value = state.loc; }
+if (/^\d{4}-\d{2}-\d{2}$/.test(hp.get('date') || '')) state.dateISO = hp.get('date');
+goToday(!state.dateISO);
+setInterval(render, 30000); // keep NOW line honest
+</script>
+</body>
+</html>
