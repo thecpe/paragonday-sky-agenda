@@ -68,8 +68,13 @@
     border-radius: 9px; padding: 8px 12px; font-size: 14px; font-family: inherit;
     cursor: pointer;
   }
+  input {
+    background: var(--surf); color: var(--ink); border: 1px solid var(--hair);
+    border-radius: 9px; padding: 9px 12px; font-size: 14px; font-family: inherit;
+  }
   select:hover, button:hover { border-color: var(--ink-mut); }
   button.primary { border-color: var(--gold); color: var(--gold); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
   .tabs { display: flex; border: 1px solid var(--hair); border-radius: 9px; overflow: hidden; }
   .tabs button { border: 0; border-radius: 0; padding: 8px 14px; }
   .tabs button.on { background: var(--gold); color: #0d0d0d; font-weight: 700; }
@@ -85,6 +90,25 @@
     background: var(--surf); border: 1px solid var(--gold); border-radius: 10px;
     font-size: 14px; color: var(--ink-sec); display: none;
   }
+  .composer {
+    max-width: 1040px; margin: 4px auto 14px; padding: 0 24px;
+  }
+  .compose-box {
+    background: var(--surf); border: 1px solid var(--hair); border-radius: 14px;
+    padding: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.12);
+  }
+  .compose-row { display: flex; gap: 8px; }
+  .compose-row input { flex: 1; min-width: 0; }
+  .compose-examples { font-size: 11.5px; color: var(--ink-mut); margin-top: 7px; line-height: 1.45; }
+  .draft-card {
+    display: none; margin-top: 10px; padding: 12px 13px; border-radius: 11px;
+    background: var(--surf2); border: 1px solid var(--gold);
+  }
+  .draft-card .eyebrow { color: var(--gold); font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px; }
+  .draft-card .draft-title { color: var(--ink); font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .draft-card .draft-meta { color: var(--ink-sec); font-size: 12.5px; line-height: 1.55; margin-top: 3px; }
+  .draft-card .draft-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+  .draft-card .draft-note { color: var(--ink-mut); font-size: 11.5px; line-height: 1.45; margin-top: 7px; }
   .allday {
     max-width: 1040px; margin: 0 auto; padding: 0 24px 8px;
     display: flex; flex-wrap: wrap; gap: 6px;
@@ -235,6 +259,22 @@
   #gcalPanel .stat b { color: var(--cat-import); }
   #gcalPanel label { font-size: 12.5px; color: var(--ink-sec); display: flex; gap: 7px; align-items: center; margin-bottom: 9px; cursor: pointer; }
   #gcalPanel .foot { font-size: 11.5px; color: var(--ink-mut); line-height: 1.5; border-top: 1px solid var(--hair); padding-top: 9px; }
+  #gcalPanel .oauth {
+    border: 1px solid var(--hair); border-radius: 12px; padding: 12px; margin-bottom: 12px;
+  }
+  #gcalPanel .oauth strong { color: var(--ink); font-size: 13.5px; }
+  #gcalPanel .oauth .stat { margin: 5px 0 9px; line-height: 1.45; }
+  #gcalPanel details { border-top: 1px solid var(--hair); padding-top: 9px; margin-top: 9px; }
+  #gcalPanel summary { color: var(--ink-mut); font-size: 11.5px; cursor: pointer; }
+  #gcalPanel code { font-size: 10.5px; overflow-wrap: anywhere; }
+  .sync-live { color: var(--cat-personal); }
+  .sync-error { color: #e05b4d; }
+  @media (max-width: 700px) {
+    #gcalPanel { left: 12px; right: 12px; top: 64px; width: auto; max-height: calc(100vh - 78px); overflow-y: auto; }
+    .compose-row { flex-direction: column; }
+    #gutter { width: 116px; }
+    .event { left: 30px; right: 12px; }
+  }
   footer { max-width: 1040px; margin: 0 auto 48px; padding: 0 24px; font-size: 13.5px; color: var(--ink-mut); line-height: 1.6; }
   .kbd { font-size: 12px; color: var(--ink-mut); }
 </style>
@@ -263,6 +303,18 @@
   <button id="themeBtn">☾ / ☀︎</button>
 </div>
 
+<div class="composer">
+  <form class="compose-box" id="nlForm">
+    <div class="compose-row">
+      <input id="nlInput" type="text" autocomplete="off" aria-label="Describe an event"
+        placeholder="Dinner with sam@example.com tomorrow an hour before sunset">
+      <button class="primary" type="submit">Preview event</button>
+    </div>
+    <div class="compose-examples">Try “run Friday at pastrise +0:30 for 45 min” or “call Mom next Tuesday at 7pm”. Nothing is saved until you confirm.</div>
+    <div class="draft-card" id="draftCard" aria-live="polite"></div>
+  </form>
+</div>
+
 <div class="daystats" id="daystats"></div>
 <div class="polar-note" id="polarNote"></div>
 <div class="allday" id="alldayRow"></div>
@@ -278,6 +330,22 @@
 
 <div id="gcalPanel">
   <h3>GOOGLE CALENDAR ⇄ SKY AGENDA</h3>
+  <div class="oauth">
+    <strong id="googleHeading">Live Google Calendar</strong>
+    <div class="stat" id="googleStat">Sign in to load the visible date range and create confirmed events directly in Google Calendar.</div>
+    <div class="row">
+      <button id="googleSignIn" class="primary" style="flex:1">Sign in with Google</button>
+      <button id="googleRefresh" style="display:none">Refresh</button>
+      <button id="googleSignOut" style="display:none">Sign out</button>
+    </div>
+    <details id="oauthSetup">
+      <summary>OAuth setup</summary>
+      <p style="margin-top:8px">This static prototype needs a Google OAuth Web client ID. It is public configuration, stored only in this browser.</p>
+      <div class="row"><input type="text" id="googleClientId" placeholder="…apps.googleusercontent.com"><button id="saveClientId">Save</button></div>
+      <p>Authorized JavaScript origin: <code id="oauthOrigin"></code></p>
+    </details>
+  </div>
+  <p><b>File import fallback</b> — useful without sign-in or for exported calendars.</p>
   <div class="drop" id="dropZone">Drop a <b>.ics</b> file here (or click to choose)</div>
   <input type="file" id="icsFile" accept=".ics,text/calendar" style="display:none">
   <div class="row"><input type="text" id="icsUrl" placeholder="…or paste an ICS URL"><button id="icsFetch">Load</button></div>
@@ -285,7 +353,7 @@
   <div class="stat" id="importStat"></div>
   <div class="row"><button id="clearImports" class="danger" style="border-color:#e05b4d;color:#e05b4d">Clear imported</button><button id="closePanel" style="flex:1">Close</button></div>
   <label><input type="checkbox" id="samplesChk" checked> show sample Horizon-Time events</label>
-  <div class="foot">Recurring events (RRULE) are expanded locally; nothing leaves your browser. Every event card also offers <b>“＋ Google Calendar”</b>, so invites round-trip. Production path: full 2-way OAuth sync.</div>
+  <div class="foot">OAuth access tokens stay in memory and are never saved. File imports stay only in localStorage. Confirmed signed-in events write directly to your primary Google Calendar.</div>
 </div>
 
 <footer>
@@ -295,6 +363,7 @@
   Weeks, months and years keep their civil names — only their <i>portrait</i> changes: the week shows the light shifting, the month shows the drift, the year is one macro sun-cycle from nadir to zenith.
 </footer>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 'use strict';
 /* ================= solar math (NOAA) ================= */
@@ -429,7 +498,7 @@ try { imports = JSON.parse(localStorage.getItem('skyagenda.imports') || '[]'); }
 try { state.samples = localStorage.getItem('skyagenda.samples') !== '0'; } catch (e) {}
 function saveImports() {
   try {
-    localStorage.setItem('skyagenda.imports', JSON.stringify(imports));
+    localStorage.setItem('skyagenda.imports', JSON.stringify(imports.filter(item => item.src !== 'google-live')));
     localStorage.setItem('skyagenda.samples', state.samples ? '1' : '0');
   } catch (e) {}
 }
@@ -575,6 +644,442 @@ function gcalUrl(title, sMs, eMs, details) {
   return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
     + `&text=${encodeURIComponent(title)}&dates=${f(sMs)}/${f(eMs)}&details=${encodeURIComponent(details)}`;
 }
+/* ================= natural-language scheduling ================= */
+const MONTHS = {
+  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
+  may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,
+  dec: 12, december: 12,
+};
+const WEEKDAYS = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+function isoDuration(minutes) {
+  const h = Math.floor(minutes / 60), m = minutes % 60;
+  return `PT${h ? `${h}H` : ''}${m ? `${m}M` : ''}` || 'PT0M';
+}
+function durationMinutes(value, unit) {
+  const normalized = String(value).toLowerCase();
+  const amount = normalized.startsWith('half') ? 0.5 : (/^(?:a|an)$/.test(normalized) ? 1 : Number(normalized));
+  return Math.round(amount * (/^h|hour/.test(unit.toLowerCase()) ? 60 : 1));
+}
+function parseSchedule(input, referenceDate, parazoneNames) {
+  let work = String(input || '').trim();
+  if (!work) return null;
+  let date = referenceDate;
+  let explicitDate = false;
+  let duration = 60;
+  let attendees = [];
+  let location = null;
+  let anchor = null;
+  let tonight = false;
+
+  const consume = match => {
+    if (!match) return;
+    work = work.slice(0, match.index) + ' '.repeat(match[0].length) + work.slice(match.index + match[0].length);
+  };
+
+  let m = work.match(/\bfor\s+(half an?|an?|a|\d+(?:\.\d+)?)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m)\b/i);
+  if (m) { duration = durationMinutes(m[1], m[2]); consume(m); }
+  else {
+    m = work.match(/\bfor\s+(\d+)\s*h(?:ours?)?(?:\s*(\d+)\s*m(?:in(?:utes?)?)?)?\b/i);
+    if (m) { duration = +m[1] * 60 + (+m[2] || 0); consume(m); }
+    else {
+      m = work.match(/\b(\d+(?:\.\d+)?)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m)\s*$/i);
+      if (m) { duration = durationMinutes(m[1], m[2]); consume(m); }
+    }
+  }
+
+  m = work.match(/\bin\s+(\d+)\s+days?\b/i);
+  if (m) { date = shiftISO(referenceDate, +m[1]); explicitDate = true; consume(m); }
+  if (!explicitDate) {
+    m = work.match(/\b(today|tomorrow|tonight)\b/i);
+    if (m) {
+      tonight = m[1].toLowerCase() === 'tonight';
+      date = m[1].toLowerCase() === 'tomorrow' ? shiftISO(referenceDate, 1) : referenceDate;
+      explicitDate = true; consume(m);
+    }
+  }
+  if (!explicitDate) {
+    m = work.match(/\b(next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+    if (m) {
+      let delta = (WEEKDAYS[m[2].toLowerCase()] - weekdayOf(referenceDate) + 7) % 7;
+      if (delta === 0) delta = 7;
+      date = shiftISO(referenceDate, delta);
+      explicitDate = true; consume(m);
+    }
+  }
+  if (!explicitDate) {
+    m = work.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:,\s*(\d{4}))?\b/i);
+    if (m) {
+      let year = +(m[3] || referenceDate.slice(0, 4));
+      const month = MONTHS[m[1].toLowerCase()];
+      let candidate = `${year}-${String(month).padStart(2, '0')}-${String(+m[2]).padStart(2, '0')}`;
+      if (!m[3] && candidate < referenceDate) candidate = `${year + 1}${candidate.slice(4)}`;
+      date = candidate; explicitDate = true; consume(m);
+    }
+  }
+  if (!explicitDate) {
+    m = work.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    if (m) {
+      let year = m[3] ? +(m[3].length === 2 ? `20${m[3]}` : m[3]) : +referenceDate.slice(0, 4);
+      let candidate = `${year}-${String(+m[1]).padStart(2, '0')}-${String(+m[2]).padStart(2, '0')}`;
+      if (!m[3] && candidate < referenceDate) candidate = `${year + 1}${candidate.slice(4)}`;
+      date = candidate; explicitDate = true; consume(m);
+    }
+  }
+
+  const solarWord = '(tilset|sunset|pastrise|sunrise|tilrise|pastset)';
+  m = work.match(new RegExp(`\\b(half an?|an?|a|\\d+(?:\\.\\d+)?)\\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m)\\s+(before|after)\\s+${solarWord}\\b`, 'i'));
+  if (m) {
+    const mins = durationMinutes(m[1], m[2]) * (m[3].toLowerCase() === 'before' ? -1 : 1);
+    anchor = { type: solarType(m[4]), offsetMinutes: mins }; consume(m);
+  }
+  if (!anchor) {
+    m = work.match(new RegExp(`\\b(?:at\\s+)?${solarWord}\\s*([+−-])\\s*(\\d{1,2})(?::(\\d{2}))?\\b`, 'i'));
+    if (m) {
+      const mins = (+m[3] * 60 + (+m[4] || 0)) * (m[2] === '+' ? 1 : -1);
+      anchor = { type: solarType(m[1]), offsetMinutes: mins }; consume(m);
+    }
+  }
+  if (!anchor) {
+    m = work.match(new RegExp(`(?:^|\\s)([+−-])\\s*(\\d{1,2})(?::(\\d{2}))?\\s+${solarWord}\\b`, 'i'));
+    if (m) {
+      const mins = (+m[2] * 60 + (+m[3] || 0)) * (m[1] === '+' ? 1 : -1);
+      anchor = { type: solarType(m[4]), offsetMinutes: mins }; consume(m);
+    }
+  }
+  if (!anchor) {
+    m = work.match(new RegExp(`\\b(?:at\\s+)?${solarWord}\\b`, 'i'));
+    if (m) { anchor = { type: solarType(m[1]), offsetMinutes: 0 }; consume(m); }
+  }
+
+  if (!anchor) {
+    m = work.match(/\b(?:at\s+)?(noon|midnight)\b/i);
+    if (m) {
+      anchor = { type: 'clock', time: m[1].toLowerCase() === 'noon' ? '12:00' : '00:00' }; consume(m);
+    }
+  }
+  if (!anchor) {
+    m = work.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)\b/i);
+    if (m) {
+      let h = +m[1] % 12;
+      if (m[3].toLowerCase().startsWith('p')) h += 12;
+      anchor = { type: 'clock', time: `${String(h).padStart(2, '0')}:${String(+m[2] || 0).padStart(2, '0')}` }; consume(m);
+    }
+  }
+  if (!anchor) {
+    m = work.match(/\b(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/);
+    if (m) {
+      anchor = { type: 'clock', time: `${String(+m[1]).padStart(2, '0')}:${m[2]}` }; consume(m);
+    }
+  }
+  if (!anchor) {
+    m = work.match(/\bat\s+([1-9]|1[0-2])\b/i);
+    if (m) {
+      const raw = +m[1], h = raw <= 7 ? raw + 12 : raw;
+      anchor = { type: 'clock', time: `${String(h).padStart(2, '0')}:00` }; consume(m);
+    }
+  }
+  if (!anchor && tonight) anchor = { type: 'clock', time: '19:00' };
+
+  m = work.match(/\bwith\s+(.+?)(?=\s+(?:today|tomorrow|tonight|next\s|sun(?:day|rise|set)\b|mon(?:day)?\b|tue(?:sday)?\b|wed(?:nesday)?\b|thu(?:rsday)?\b|fri(?:day)?\b|sat(?:urday)?\b|at\s|for\s|in\s+(?:\d+\s+days?\b|[a-z]))|$)/i);
+  if (m) {
+    attendees = m[1].split(/\s*(?:,|&|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
+    consume(m);
+  }
+  const emails = [...work.matchAll(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi)].map(x => x[0]);
+  if (emails.length) {
+    attendees = [...new Set(attendees.concat(emails))];
+    work = work.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, ' ');
+  }
+  work = work.replace(/(^|\s)(?:with|and)\s*(?=$|\s)/gi, ' ');
+
+  m = work.match(/\b(?:at|in)\s+([a-z][a-z0-9 .'-]+)$/i);
+  if (m) {
+    const candidate = m[1].trim();
+    const known = (parazoneNames || []).find(p => p.toLowerCase() === candidate.toLowerCase());
+    location = known || candidate; consume(m);
+  }
+
+  const title = work.replace(/\s+/g, ' ').replace(/^[,;:\s-]+|[,;:\s-]+$/g, '').trim() || 'Untitled event';
+  return {
+    title, date, anchor, allDay: !anchor, duration: isoDuration(duration), durationMinutes: duration,
+    attendees, location, confidence: 'exact', explicitDate,
+  };
+}
+function solarType(word) {
+  const w = word.toLowerCase();
+  if (w === 'sunset') return 'tilset';
+  if (w === 'sunrise') return 'pastrise';
+  return w;
+}
+function resolveDraft(draft, loc) {
+  if (draft.allDay) return { startMs: null, endMs: null, hour: null, solar: null };
+  let startMs;
+  if (draft.anchor.type === 'clock') {
+    const [h, m] = draft.anchor.time.split(':').map(Number);
+    startMs = zonedMs(draft.date, h, m, loc.tz);
+  } else {
+    const se = sunFor(draft.date, loc);
+    const usesRise = draft.anchor.type === 'pastrise' || draft.anchor.type === 'tilrise';
+    const base = usesRise ? se.rise : se.set;
+    if (base == null) throw new Error(`No ${usesRise ? 'sunrise' : 'sunset'} occurs on this date in ${loc.name}.`);
+    startMs = base + draft.anchor.offsetMinutes * 60000;
+  }
+  const hour = localHour(startMs, loc.tz);
+  const se = sunFor(localISO(startMs, loc.tz), loc);
+  const riseH = se.rise == null ? null : localHour(se.rise, loc.tz);
+  const setH = se.set == null ? null : localHour(se.set, loc.tz);
+  return {
+    startMs, endMs: startMs + draft.durationMinutes * 60000, hour,
+    solar: htLabel(hour, riseH, setH, se.polar)[0],
+  };
+}
+function draftAnchorLabel(draft) {
+  if (draft.allDay) return 'all day';
+  if (draft.anchor.type === 'clock') return draft.anchor.time;
+  const mins = draft.anchor.offsetMinutes;
+  return `${draft.anchor.type} ${mins < 0 ? '−' : '+'}${hhmm(Math.abs(mins) / 60)}`;
+}
+/* ================= live Google Calendar ================= */
+const GOOGLE_CLIENT_ID_DEFAULT = '';
+const GOOGLE_EVENTS_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const GOOGLE_LIST_SCOPE = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+const GOOGLE_SCOPES = `${GOOGLE_EVENTS_SCOPE} ${GOOGLE_LIST_SCOPE}`;
+const googleSession = {
+  token: null, tokenClient: null, expiresAt: 0, loading: false, rangeKey: null,
+  syncTimer: null, pendingDraft: null, lastError: null, calendarCount: 0, canListCalendars: false,
+};
+function getGoogleClientId() {
+  try { return localStorage.getItem('skyagenda.googleClientId') || GOOGLE_CLIENT_ID_DEFAULT; }
+  catch (e) { return GOOGLE_CLIENT_ID_DEFAULT; }
+}
+function setGoogleClientId(value) {
+  const clean = String(value || '').trim();
+  if (clean && !/\.apps\.googleusercontent\.com$/.test(clean)) throw new Error('That does not look like a Google OAuth Web client ID.');
+  localStorage.setItem('skyagenda.googleClientId', clean);
+  googleSession.tokenClient = null;
+  googleSession.token = null;
+  googleSession.expiresAt = 0;
+  googleSession.rangeKey = null;
+  googleSession.calendarCount = 0;
+  googleSession.canListCalendars = false;
+  imports = imports.filter(item => item.src !== 'google-live');
+  return clean;
+}
+function googleReady() {
+  return Boolean(googleSession.token && googleSession.expiresAt > Date.now() + 30000);
+}
+function initGoogleAuth() {
+  const clientId = getGoogleClientId();
+  if (!clientId || !window.google || !google.accounts || !google.accounts.oauth2) return false;
+  if (googleSession.tokenClient) return true;
+  googleSession.tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GOOGLE_SCOPES,
+    callback: async response => {
+      if (response.error) {
+        googleSession.lastError = response.error_description || response.error;
+        googleSession.pendingDraft = null;
+        refreshGoogleUI();
+        return;
+      }
+      googleSession.token = response.access_token;
+      googleSession.expiresAt = Date.now() + Math.max(60, +response.expires_in || 3600) * 1000;
+      const hasEvents = google.accounts.oauth2.hasGrantedAllScopes(response, GOOGLE_EVENTS_SCOPE);
+      googleSession.canListCalendars = google.accounts.oauth2.hasGrantedAllScopes(response, GOOGLE_LIST_SCOPE);
+      if (!hasEvents) {
+        googleSession.token = null;
+        googleSession.expiresAt = 0;
+        googleSession.lastError = 'Google Calendar event access was not granted.';
+        googleSession.pendingDraft = null;
+        refreshGoogleUI();
+        return;
+      }
+      googleSession.lastError = null;
+      googleSession.rangeKey = null;
+      const pending = googleSession.pendingDraft;
+      googleSession.pendingDraft = null;
+      refreshGoogleUI();
+      try {
+        await loadGoogleEvents(true);
+        if (pending) await createGoogleEvent(pending);
+      } catch (error) {
+        googleSession.lastError = error.message;
+        refreshGoogleUI();
+      }
+    },
+    error_callback: error => {
+      googleSession.lastError = error.type || 'Google sign-in was closed.';
+      googleSession.pendingDraft = null;
+      refreshGoogleUI();
+    },
+  });
+  return true;
+}
+function requestGoogleAccess(pendingDraft) {
+  if (pendingDraft) googleSession.pendingDraft = pendingDraft;
+  if (!getGoogleClientId()) {
+    googleSession.pendingDraft = null;
+    $('gcalPanel').style.display = 'block';
+    $('oauthSetup').open = true;
+    refreshGoogleUI();
+    return;
+  }
+  if (!initGoogleAuth()) {
+    googleSession.lastError = 'Google Identity Services is still loading. Try again in a moment.';
+    refreshGoogleUI();
+    return;
+  }
+  googleSession.tokenClient.requestAccessToken();
+}
+async function googleFetch(path, options) {
+  if (!googleReady()) throw new Error('Google access expired. Sign in again.');
+  const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
+    ...(options || {}),
+    headers: {
+      'Authorization': `Bearer ${googleSession.token}`,
+      'Content-Type': 'application/json',
+      ...((options && options.headers) || {}),
+    },
+  });
+  if (response.status === 401) {
+    googleSession.token = null; googleSession.expiresAt = 0; refreshGoogleUI();
+    throw new Error('Google access expired. Sign in again.');
+  }
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error && body.error.message ? body.error.message : `Google Calendar error ${response.status}`);
+  return body;
+}
+function visibleGoogleRange() {
+  const loc = LOCS[state.loc];
+  let start, end;
+  if (state.view === 'day') {
+    start = state.dateISO; end = shiftISO(start, 1);
+  } else if (state.view === 'week') {
+    start = shiftISO(state.dateISO, -weekdayOf(state.dateISO)); end = shiftISO(start, 7);
+  } else if (state.view === 'month') {
+    const first = `${state.dateISO.slice(0, 7)}-01`;
+    start = shiftISO(first, -weekdayOf(first)); end = shiftISO(start, 42);
+  } else {
+    start = `${state.dateISO.slice(0, 4)}-01-01`; end = `${+state.dateISO.slice(0, 4) + 1}-01-01`;
+  }
+  return { start, end, timeMin: zonedMs(start, 0, 0, loc.tz), timeMax: zonedMs(end, 0, 0, loc.tz) };
+}
+function googleEventInstances(item, calendar) {
+  if (!item.start) return [];
+  const common = {
+    title: item.summary || '(untitled)', src: 'google-live', googleId: item.id,
+    htmlLink: item.htmlLink || '', calendarName: calendar.summary || 'Google Calendar',
+    calendarColor: calendar.backgroundColor || '', status: item.status,
+  };
+  if (item.start.date) {
+    const end = item.end && item.end.date ? item.end.date : shiftISO(item.start.date, 1);
+    const out = [];
+    for (let iso = item.start.date; iso < end; iso = shiftISO(iso, 1)) out.push({ ...common, allDay: true, dateISO: iso });
+    return out;
+  }
+  const startMs = Date.parse(item.start.dateTime);
+  const endMs = item.end && item.end.dateTime ? Date.parse(item.end.dateTime) : startMs + 3600000;
+  if (!Number.isFinite(startMs)) return [];
+  return [{ ...common, startMs, endMs }];
+}
+async function loadGoogleEvents(force) {
+  if (!googleReady() || googleSession.loading) return;
+  const range = visibleGoogleRange();
+  const key = `${state.view}|${state.loc}|${range.start}|${range.end}`;
+  if (!force && googleSession.rangeKey === key) return;
+  googleSession.loading = true; googleSession.lastError = null; refreshGoogleUI();
+  try {
+    let calendars = [{ id: 'primary', summary: 'Primary' }];
+    if (googleSession.canListCalendars) {
+      let calendarPageToken = null;
+      calendars = [];
+      do {
+        const listQuery = new URLSearchParams({ maxResults: '250', showDeleted: 'false', showHidden: 'false' });
+        if (calendarPageToken) listQuery.set('pageToken', calendarPageToken);
+        const page = await googleFetch(`/users/me/calendarList?${listQuery}`);
+        calendars = calendars.concat(page.items || []);
+        calendarPageToken = page.nextPageToken || null;
+      } while (calendarPageToken && calendars.length < 500);
+      calendars = calendars.filter(calendar => calendar.selected !== false && !calendar.deleted).slice(0, 50);
+    }
+    const batches = await Promise.all(calendars.map(async calendar => {
+      let pageToken = null, calendarEvents = [];
+      do {
+        const query = new URLSearchParams({
+          timeMin: new Date(range.timeMin).toISOString(),
+          timeMax: new Date(range.timeMax).toISOString(),
+          singleEvents: 'true', orderBy: 'startTime', showDeleted: 'false', maxResults: '2500',
+        });
+        if (pageToken) query.set('pageToken', pageToken);
+        const page = await googleFetch(`/calendars/${encodeURIComponent(calendar.id)}/events?${query}`);
+        calendarEvents = calendarEvents.concat((page.items || []).flatMap(item => googleEventInstances(item, calendar)));
+        pageToken = page.nextPageToken || null;
+      } while (pageToken && calendarEvents.length < 5000);
+      return calendarEvents;
+    }));
+    const live = batches.flat().slice(0, 10000);
+    imports = imports.filter(item => item.src !== 'google-live').concat(live);
+    googleSession.rangeKey = key;
+    googleSession.calendarCount = calendars.length;
+    googleSession.lastError = null;
+    render();
+  } catch (error) {
+    googleSession.lastError = error.message;
+  } finally {
+    googleSession.loading = false; refreshGoogleUI();
+  }
+}
+function scheduleGoogleSync() {
+  if (!googleReady()) return;
+  clearTimeout(googleSession.syncTimer);
+  googleSession.syncTimer = setTimeout(() => loadGoogleEvents(false), 120);
+}
+async function createGoogleEvent(draft) {
+  const loc = LOCS[state.loc];
+  let resolved;
+  try { resolved = resolveDraft(draft, loc); }
+  catch (error) { showDraftError(error.message); return; }
+  const attendees = draft.attendees.filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).map(email => ({ email }));
+  const anchorProps = draft.anchor ? {
+    paragondayAnchorVersion: '1',
+    paragondayAnchorType: draft.anchor.type,
+    paragondayAnchorOffsetMinutes: String(draft.anchor.offsetMinutes || 0),
+    paragondayLocation: `${loc.lat},${loc.lon}`,
+    paragondayTimeZone: loc.tz,
+  } : {};
+  const body = {
+    summary: draft.title,
+    location: draft.location || undefined,
+    attendees: attendees.length ? attendees : undefined,
+    description: draft.anchor
+      ? `${draftAnchorLabel(draft)} at ${loc.name} · created with Paragonday Sky Agenda`
+      : 'Created with Paragonday Sky Agenda',
+    extendedProperties: { private: anchorProps },
+  };
+  if (draft.allDay) {
+    body.start = { date: draft.date };
+    body.end = { date: shiftISO(draft.date, Math.max(1, Math.ceil(draft.durationMinutes / 1440))) };
+  } else {
+    body.start = { dateTime: new Date(resolved.startMs).toISOString(), timeZone: loc.tz };
+    body.end = { dateTime: new Date(resolved.endMs).toISOString(), timeZone: loc.tz };
+  }
+  setDraftBusy(true);
+  let saved = false;
+  try {
+    const created = await googleFetch(`/calendars/primary/events?sendUpdates=${attendees.length ? 'all' : 'none'}`, {
+      method: 'POST', body: JSON.stringify(body),
+    });
+    googleSession.rangeKey = null;
+    await loadGoogleEvents(true);
+    showDraftSuccess(created.htmlLink || '');
+    saved = true;
+  } catch (error) {
+    showDraftError(error.message);
+  } finally {
+    if (!saved) setDraftBusy(false);
+  }
+}
 /* ================= view plumbing ================= */
 const $ = id => document.getElementById(id);
 const stagePad = { top: 30, bottom: 30 };
@@ -617,6 +1122,7 @@ function render() {
   else if (state.view === 'week') renderWeek();
   else if (state.view === 'month') renderMonth();
   else renderYear();
+  scheduleGoogleSync();
 }
 /* ================= DAY view ================= */
 function renderDay() {
@@ -749,7 +1255,7 @@ function renderDay() {
       `<div class="t">${esc(title)}</div>` +
       `<div class="m" style="color:${mut}">${main} · ${sub} · ${clock12(c.s)}–${clock12(c.s + c.d)}</div>` +
       (showBadge && anchorTxt ? `<div class="anchor-badge">☉ ${anchorTxt}${c.ev.hot ? ' — each invitee sees their own sky' : ''}</div>` : '') +
-      (isImp ? `<div class="anchor-badge" style="color:${cat};background:rgba(143,111,232,.14)">⇄ Google Calendar</div>` : '');
+      (isImp ? `<div class="anchor-badge" style="color:${cat};background:rgba(143,111,232,.14)">${c.ev.src === 'google-live' ? '● Live Google Calendar' : '⇄ Calendar import'}</div>` : '');
     if (isImp) el.dataset.imp = imports.indexOf(c.imp);
     else el.dataset.id = c.ev.id;
     skywrap.appendChild(el);
@@ -1009,7 +1515,7 @@ function renderYear() {
     `crosses <b>year-rise</b>, peaks at the <b>year-zenith</b> (summer solstice, ${hhmm(days[zen].len)}), and returns through <b>year-set</b>. ` +
     `Same four-label grammar as the day — tilset : sunset :: til-nadir : winter. ` +
     `Year-rise/year-set are the exact 12-hour crossings (the <i>equiluxes</i> — a few days off the equinoxes, because refraction pads the day). ` +
-    `The vertical breaks in the band are DST: the clock jumps, the sun doesn’t. Gold dots are your imported Google Calendar events, plotted against the light they’ll happen in.`;
+    `The vertical breaks in the band are DST: the clock jumps, the sun doesn’t. Gold dots are your live or imported Google Calendar events, plotted against the light they’ll happen in.`;
 }
 /* ================= interactions ================= */
 function hourAtY(clientY) {
@@ -1112,8 +1618,13 @@ function openImported(imp, x, y) {
   if (!imp) return;
   const pop = $('popover');
   const loc = LOCS[state.loc];
+  const live = imp.src === 'google-live';
+  const openLink = live && imp.htmlLink
+    ? `<a class="gbtn" href="${esc(imp.htmlLink)}" target="_blank" rel="noopener">↗ open in Google Calendar</a>`
+    : '';
   if (imp.allDay) {
-    pop.innerHTML = `<h3>GOOGLE CALENDAR · ALL DAY</h3><div class="hint"><b style="color:var(--ink)">${esc(imp.title)}</b><br>${imp.dateISO}</div>
+    pop.innerHTML = `<h3>${live ? 'LIVE GOOGLE CALENDAR' : 'CALENDAR IMPORT'} · ALL DAY</h3><div class="hint"><b style="color:var(--ink)">${esc(imp.title)}</b><br>${imp.dateISO}</div>
+      ${openLink}
       <div class="row" style="margin-top:8px"><button id="evDone" class="primary" style="flex:1">Close</button></div>`;
   } else {
     const iso = localISO(imp.startMs, loc.tz);
@@ -1125,11 +1636,11 @@ function openImported(imp, x, y) {
     const gurl = gcalUrl(imp.title, imp.startMs, imp.endMs,
       `${longLabel(s, riseH, setH, se.polar)} at ${loc.name} · Horizon Time (paragonday.systems) — via Sky Agenda`);
     pop.innerHTML =
-      `<h3>GOOGLE CALENDAR EVENT</h3>
+      `<h3>${live ? 'LIVE GOOGLE CALENDAR EVENT' : 'IMPORTED CALENDAR EVENT'}</h3>
        <div class="hint"><b style="color:var(--ink);font-size:14px">${esc(imp.title)}</b><br>
        ${main} · ${sub}<br>${clock12(s)}–${clock12(s + (imp.endMs - imp.startMs) / 3600000)} · ${iso}</div>
        ${inviteeRows(imp.startMs)}
-       <a class="gbtn" href="${gurl}" target="_blank" rel="noopener">↗ open template in Google Calendar</a>
+       ${openLink || `<a class="gbtn" href="${gurl}" target="_blank" rel="noopener">↗ open template in Google Calendar</a>`}
        <div class="row" style="margin-top:10px"><button id="evDone" class="primary" style="flex:1">Close</button></div>`;
   }
   placePop(pop, x, y);
@@ -1138,20 +1649,137 @@ function openImported(imp, x, y) {
 document.addEventListener('pointerdown', e => {
   if (!e.target.closest('#popover') && !e.target.closest('.event') && !e.target.closest('.wk-ev')) $('popover').style.display = 'none';
 }, true);
-/* ================= ICS panel wiring ================= */
+/* ================= scheduling + Google panel wiring ================= */
+let currentDraft = null;
+function renderDraftCard(draft) {
+  const card = $('draftCard');
+  currentDraft = draft;
+  if (!draft) { card.style.display = 'none'; card.innerHTML = ''; return; }
+  const loc = LOCS[state.loc];
+  let resolved = null, error = null;
+  try { resolved = resolveDraft(draft, loc); } catch (e) { error = e.message; }
+  const dateText = new Date(`${draft.date}T12:00:00Z`).toLocaleDateString('en-US', {
+    timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  });
+  const timeText = error ? '' : (draft.allDay
+    ? 'All day'
+    : `${clock12(resolved.hour)} · ${resolved.solar} · ${draftAnchorLabel(draft)}`);
+  const durationText = draft.allDay ? '' : ` · ${draft.duration}`;
+  const guests = draft.attendees.length ? `<br>Guests: ${esc(draft.attendees.join(', '))}` : '';
+  const place = draft.location ? `<br>Place: ${esc(draft.location)}` : '';
+  const unresolved = draft.attendees.filter(value => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+  card.innerHTML =
+    `<div class="eyebrow">CONFIRM BEFORE SAVING</div>
+     <div class="draft-title">${esc(draft.title)}</div>
+     <div class="draft-meta">${dateText} · ${error ? `<span class="sync-error">${esc(error)}</span>` : timeText}${durationText}<br>${esc(loc.name)}${guests}${place}</div>
+     <div class="draft-actions">
+       <button type="button" id="draftConfirm" class="primary" ${error ? 'disabled' : ''}>${googleReady() ? 'Confirm → Google Calendar' : 'Sign in & confirm'}</button>
+       <button type="button" id="draftCancel">Cancel</button>
+     </div>
+     <div class="draft-note" id="draftStatus">${unresolved.length ? `Google needs email addresses before it can invite: ${esc(unresolved.join(', '))}. The event can still be created without those unresolved guests.` : 'The deterministic parser runs in this browser. It never reads your calendar or contacts.'}</div>`;
+  card.style.display = 'block';
+  $('draftConfirm').onclick = () => googleReady() ? createGoogleEvent(draft) : requestGoogleAccess(draft);
+  $('draftCancel').onclick = () => { currentDraft = null; card.style.display = 'none'; };
+}
+function setDraftBusy(busy) {
+  const button = $('draftConfirm');
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? 'Saving to Google…' : (googleReady() ? 'Confirm → Google Calendar' : 'Sign in & confirm');
+}
+function showDraftError(message) {
+  const stat = $('draftStatus');
+  if (stat) stat.innerHTML = `<span class="sync-error">${esc(message)}</span>`;
+}
+function showDraftSuccess(link) {
+  const stat = $('draftStatus');
+  if (stat) stat.innerHTML = `<span class="sync-live">Saved to your primary Google Calendar ✓</span>${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">open event</a>` : ''}`;
+  const button = $('draftConfirm');
+  if (button) { button.disabled = true; button.textContent = 'Saved ✓'; }
+}
+$('nlForm').onsubmit = event => {
+  event.preventDefault();
+  const loc = LOCS[state.loc];
+  const referenceDate = localISO(Date.now(), loc.tz);
+  const draft = parseSchedule($('nlInput').value, referenceDate, LOCS.map(item => item.name));
+  if (!draft) return;
+  state.dateISO = draft.date; state.view = 'day'; render();
+  renderDraftCard(draft);
+};
+function refreshGoogleUI() {
+  const clientId = getGoogleClientId();
+  const liveCount = imports.filter(item => item.src === 'google-live').length;
+  const calendarCount = googleSession.calendarCount || 1;
+  $('googleClientId').value = clientId;
+  $('oauthOrigin').textContent = location.origin;
+  $('googleRefresh').style.display = googleReady() ? '' : 'none';
+  $('googleSignOut').style.display = googleReady() ? '' : 'none';
+  $('googleSignIn').style.display = googleReady() ? 'none' : '';
+  if (googleSession.loading) {
+    $('googleStat').innerHTML = 'Loading the visible date range…';
+  } else if (googleReady()) {
+    $('googleStat').innerHTML = `<span class="sync-live">Connected ✓</span> · ${liveCount} live event instance${liveCount === 1 ? '' : 's'} from ${calendarCount} selected calendar${calendarCount === 1 ? '' : 's'} in this view.`;
+  } else if (googleSession.lastError) {
+    $('googleStat').innerHTML = `<span class="sync-error">${esc(googleSession.lastError)}</span>`;
+  } else if (!clientId) {
+    $('googleStat').innerHTML = 'Add the OAuth Web client ID below once, then sign in. The client ID is public configuration, not a secret.';
+  } else {
+    $('googleStat').innerHTML = 'Sign in to live-load events and save confirmed drafts to your primary calendar.';
+  }
+  $('gcalBtn').textContent = googleReady() ? `● Google · ${liveCount}` : '⇄ Google Calendar';
+  if (currentDraft && $('draftCard').style.display === 'block') {
+    const button = $('draftConfirm');
+    if (button && !button.disabled) button.textContent = googleReady() ? 'Confirm → Google Calendar' : 'Sign in & confirm';
+  }
+}
+$('googleSignIn').onclick = () => requestGoogleAccess(null);
+$('googleRefresh').onclick = () => { googleSession.rangeKey = null; loadGoogleEvents(true); };
+$('googleSignOut').onclick = () => {
+  const token = googleSession.token;
+  const finish = () => {
+    googleSession.token = null; googleSession.expiresAt = 0; googleSession.rangeKey = null;
+    googleSession.calendarCount = 0;
+    googleSession.canListCalendars = false;
+    imports = imports.filter(item => item.src !== 'google-live');
+    refreshGoogleUI(); render();
+  };
+  if (token && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(token, finish);
+  else finish();
+};
+$('saveClientId').onclick = () => {
+  try {
+    const previousToken = googleSession.token;
+    setGoogleClientId($('googleClientId').value);
+    if (previousToken && window.google && google.accounts && google.accounts.oauth2) {
+      google.accounts.oauth2.revoke(previousToken, () => {});
+    }
+    googleSession.lastError = null;
+    $('oauthSetup').open = false;
+    refreshGoogleUI(); render();
+  } catch (error) {
+    googleSession.lastError = error.message;
+    refreshGoogleUI();
+  }
+};
+/* ================= ICS fallback wiring ================= */
 function refreshPanel() {
-  $('importStat').innerHTML = imports.length
-    ? `<b>${imports.length}</b> event instances imported — purple cards/dots. They live only in your browser (localStorage).`
+  const fileCount = imports.filter(item => item.src !== 'google-live').length;
+  $('importStat').innerHTML = fileCount
+    ? `<b>${fileCount}</b> file-imported event instances — purple cards/dots. They live only in this browser.`
     : 'Nothing imported yet.';
   $('samplesChk').checked = state.samples;
+  refreshGoogleUI();
 }
 $('gcalBtn').onclick = () => { const p = $('gcalPanel'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; refreshPanel(); };
 $('closePanel').onclick = () => { $('gcalPanel').style.display = 'none'; };
-$('clearImports').onclick = () => { imports = []; saveImports(); refreshPanel(); render(); };
+$('clearImports').onclick = () => { imports = imports.filter(item => item.src === 'google-live'); saveImports(); refreshPanel(); render(); };
 $('samplesChk').onchange = e => { state.samples = e.target.checked; saveImports(); render(); };
 $('dropZone').onclick = () => $('icsFile').click();
 $('icsFile').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => alertCount(importICSText(t))); };
-function alertCount(n) { $('importStat').innerHTML = `<b>${n}</b> instances just imported ✓ (total ${imports.length}).`; }
+function alertCount(n) {
+  const fileCount = imports.filter(item => item.src !== 'google-live').length;
+  $('importStat').innerHTML = `<b>${n}</b> instances just imported ✓ (file total ${fileCount}).`;
+}
 document.addEventListener('dragover', e => { e.preventDefault(); $('dropZone').classList.add('hot'); });
 document.addEventListener('dragleave', () => $('dropZone').classList.remove('hot'));
 document.addEventListener('drop', e => {
@@ -1197,6 +1825,7 @@ if (/^\d{4}-\d{2}-\d{2}$/.test(hp.get('date') || '')) state.dateISO = hp.get('da
 if (['day', 'week', 'month', 'year'].includes(hp.get('view'))) state.view = hp.get('view');
 if (hp.get('samples') === '0') state.samples = false;
 goToday(!state.dateISO);
+refreshGoogleUI();
 if (hp.get('ics')) fetch(hp.get('ics')).then(r => r.text()).then(t => importICSText(t)).catch(() => {});
 setInterval(render, 30000); // keep NOW line honest
 </script>
